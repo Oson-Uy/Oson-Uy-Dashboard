@@ -4,10 +4,12 @@ export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
+    <div className="min-h-screen bg-linear-to-b from-white to-slate-50">
       <header className="border-b border-blue-100 bg-white/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-xl font-bold text-[#1E3A8A]">Oson Uy Dashboard</h1>
+          <h1 className="text-xl font-bold text-[#1E3A8A]">
+            Oson Uy Dashboard
+          </h1>
           <nav className="flex gap-2">
             <Link
               href="/dashboard/leads"
