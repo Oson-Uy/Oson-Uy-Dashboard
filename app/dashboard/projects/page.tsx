@@ -15,6 +15,7 @@ type Project = {
 
 type ProjectForm = Omit<Project, "id">;
 type Developer = { id: number; name: string };
+const STORAGE_KEY = "oson_uy_developer_name";
 
 const defaultForm: ProjectForm = {
   name: "",
@@ -38,6 +39,7 @@ export default function ProjectsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(null);
 
   const submitLabel = useMemo(
     () => (editingId ? "Сохранить изменения" : "Создать проект"),
@@ -55,6 +57,10 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       setError(null);
+      const developerName = window.localStorage.getItem(STORAGE_KEY)?.trim();
+      if (!developerName) {
+        throw new Error("Введите имя застройщика в dashboard");
+      }
 
       const [projectsRes, developersRes] = await Promise.all([
         fetch(`${API_URL}/projects`, { cache: "no-store" }),
@@ -75,14 +81,29 @@ export default function ProjectsPage() {
         apartments: Array<{ price: number }>;
         developerId: number;
       }>;
-      const devs = (await developersRes.json()) as Developer[];
+      let devs = (await developersRes.json()) as Developer[];
+      let currentDeveloper = devs.find(
+        (developer) => developer.name.toLowerCase() === developerName.toLowerCase(),
+      );
+
+      if (!currentDeveloper) {
+        const createDeveloperRes = await fetch(`${API_URL}/developers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: developerName }),
+        });
+
+        if (!createDeveloperRes.ok) {
+          throw new Error("Не удалось создать застройщика");
+        }
+
+        currentDeveloper = (await createDeveloperRes.json()) as Developer;
+        devs = [...devs, currentDeveloper];
+      }
 
       setDevelopers(devs);
-      if (devs.length) {
-        setForm((current) =>
-          current.developerId ? current : { ...current, developerId: devs[0].id },
-        );
-      }
+      setActiveDeveloperId(currentDeveloper.id);
+      setForm((current) => ({ ...current, developerId: currentDeveloper.id }));
       setProjects(
         projectsData.map((project) => ({
           id: project.id,
@@ -120,7 +141,7 @@ export default function ProjectsPage() {
           deliveryDate: form.deliveryDate,
           imageUrl: form.imageUrl,
           videoUrl: form.videoUrl || undefined,
-          developerId: form.developerId,
+          developerId: activeDeveloperId ?? form.developerId,
         };
 
         const response = await fetch(
@@ -218,30 +239,30 @@ export default function ProjectsPage() {
         <>
       <form
         onSubmit={onSubmit}
-        className="grid gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm sm:grid-cols-2"
+        className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm sm:grid-cols-2"
       >
         <label className="space-y-1">
-          <span className="text-sm font-semibold text-slate-700">name</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">name</span>
           <input
             value={form.name}
             onChange={(event) => setForm((p) => ({ ...p, name: event.target.value }))}
             required
-            className="h-12 w-full rounded-xl border border-slate-300 px-3 text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />
         </label>
         <label className="space-y-1">
-          <span className="text-sm font-semibold text-slate-700">location</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">location</span>
           <input
             value={form.location}
             onChange={(event) =>
               setForm((p) => ({ ...p, location: event.target.value }))
             }
             required
-            className="h-12 w-full rounded-xl border border-slate-300 px-3 text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />
         </label>
         <label className="space-y-1">
-          <span className="text-sm font-semibold text-slate-700">priceFrom</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">priceFrom</span>
           <input
             type="number"
             min={0}
@@ -250,11 +271,11 @@ export default function ProjectsPage() {
               setForm((p) => ({ ...p, priceFrom: Number(event.target.value) }))
             }
             required
-            className="h-12 w-full rounded-xl border border-slate-300 px-3 text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />
         </label>
         <label className="space-y-1">
-          <span className="text-sm font-semibold text-slate-700">deliveryDate</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">deliveryDate</span>
           <input
             type="text"
             value={form.deliveryDate}
@@ -262,7 +283,7 @@ export default function ProjectsPage() {
               setForm((p) => ({ ...p, deliveryDate: event.target.value }))
             }
             required
-            className="h-12 w-full rounded-xl border border-slate-300 px-3 text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />
         </label>
         <div className="space-y-2 sm:col-span-2">
@@ -312,35 +333,21 @@ export default function ProjectsPage() {
             </div>
           )}
         </div>
-        <label className="space-y-1">
-          <span className="text-sm font-semibold text-slate-700">developer</span>
-          <select
-            value={form.developerId}
-            onChange={(event) =>
-              setForm((p) => ({ ...p, developerId: Number(event.target.value) }))
-            }
-            required
-            className="h-12 w-full rounded-xl border border-slate-300 px-3 text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-          >
-            <option value={0} disabled>
-              Select developer
-            </option>
-            {developers.map((developer) => (
-              <option key={developer.id} value={developer.id}>
-                {developer.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">developer</span>
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700">
+            {developers.find((item) => item.id === activeDeveloperId)?.name ?? "—"}
+          </div>
+        </div>
         <label className="space-y-1 sm:col-span-2">
-          <span className="text-sm font-semibold text-slate-700">videoUrl (optional)</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">videoUrl (optional)</span>
           <input
             type="url"
             value={form.videoUrl}
             onChange={(event) =>
               setForm((p) => ({ ...p, videoUrl: event.target.value }))
             }
-            className="h-12 w-full rounded-xl border border-slate-300 px-3 text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />
         </label>
         <div className="flex gap-3 sm:col-span-2">

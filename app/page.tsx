@@ -21,6 +21,12 @@ export default function Home() {
           >
             Projects
           </Link>
+          <Link
+            href="/dashboard/apartments"
+            className="flex h-14 items-center justify-center rounded-xl bg-slate-700 text-base font-semibold text-white transition hover:bg-slate-600"
+          >
+            Apartments
+          </Link>
         </div>
       </main>
     </div>
