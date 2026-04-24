@@ -11,7 +11,7 @@ export default function Home() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <Link
             href="/dashboard/leads"
-            className="flex h-14 items-center justify-center rounded-xl bg-slate-900 text-base font-semibold text-white transition hover:bg-slate-700"
+            className="flex h-14 items-center justify-center rounded-xl bg-[#F97316] text-base font-semibold text-white transition hover:bg-slate-700"
           >
             Leads
           </Link>

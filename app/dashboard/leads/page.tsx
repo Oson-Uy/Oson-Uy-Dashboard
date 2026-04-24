@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type LeadStatus = "NEW" | "CONTACTED";
 
@@ -13,35 +13,54 @@ type Lead = {
   status: LeadStatus;
 };
 
-const initialLeads: Lead[] = [
-  {
-    id: 1,
-    name: "Ali Valiyev",
-    phone: "+998 90 123 45 67",
-    project: "Modern Tashkent",
-    createdAt: "2026-04-22",
-    status: "NEW",
-  },
-  {
-    id: 2,
-    name: "Dildora Karimova",
-    phone: "+998 93 222 11 00",
-    project: "Samarkand Heights",
-    createdAt: "2026-04-21",
-    status: "CONTACTED",
-  },
-  {
-    id: 3,
-    name: "Jasur Nurmatov",
-    phone: "+998 91 700 00 10",
-    project: "City Garden",
-    createdAt: "2026-04-20",
-    status: "NEW",
-  },
-];
+type ApiLead = {
+  id: number;
+  name: string;
+  phone: string;
+  status: LeadStatus;
+  createdAt: string;
+  project: { name: string } | null;
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadLeads = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_URL}/leads`, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load leads (${response.status})`);
+      }
+
+      const data = (await response.json()) as ApiLead[];
+      setLeads(
+        data.map((lead) => ({
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          project: lead.project?.name ?? "—",
+          createdAt: new Date(lead.createdAt).toISOString().slice(0, 10),
+          status: lead.status,
+        })),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLeads();
+  }, []);
 
   const leadsCount = useMemo(
     () => ({
@@ -52,12 +71,26 @@ export default function LeadsPage() {
     [leads],
   );
 
-  const setContacted = (id: number) => {
-    setLeads((current) =>
-      current.map((lead) =>
-        lead.id === id ? { ...lead, status: "CONTACTED" } : lead,
-      ),
-    );
+  const setContacted = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/leads/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONTACTED" }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update lead (${response.status})`);
+      }
+
+      setLeads((current) =>
+        current.map((lead) =>
+          lead.id === id ? { ...lead, status: "CONTACTED" } : lead,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
   return (
@@ -67,7 +100,15 @@ export default function LeadsPage() {
         <p className="mt-1 text-slate-600">
           Список заявок и быстрый перевод в статус CONTACTED.
         </p>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
+
+      {loading ? (
+        <div className="rounded-2xl border border-blue-100 bg-white p-6 text-slate-500">
+          Загрузка заявок...
+        </div>
+      ) : (
+        <>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
@@ -129,6 +170,8 @@ export default function LeadsPage() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </section>
   );
 }
