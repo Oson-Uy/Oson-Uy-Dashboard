@@ -189,7 +189,7 @@ export default function ApartmentsPage() {
                   }))
                 }
                 required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
+                className="h-10 w-full rounded-xl text-black border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               >
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
@@ -210,7 +210,7 @@ export default function ApartmentsPage() {
                   setForm((current) => ({ ...current, price: event.target.value.replace(/\D/g, "") }))
                 }
                 required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
+                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               />
             </label>
             <label className="space-y-1">
@@ -225,7 +225,7 @@ export default function ApartmentsPage() {
                   setForm((current) => ({ ...current, rooms: event.target.value.replace(/\D/g, "") }))
                 }
                 required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
+                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               />
             </label>
             <label className="space-y-1">
@@ -240,7 +240,7 @@ export default function ApartmentsPage() {
                   setForm((current) => ({ ...current, area: event.target.value.replace(/\D/g, "") }))
                 }
                 required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
+                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               />
             </label>
             <label className="space-y-1">
@@ -255,7 +255,7 @@ export default function ApartmentsPage() {
                   setForm((current) => ({ ...current, floor: event.target.value.replace(/\D/g, "") }))
                 }
                 required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
+                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               />
             </label>
             <label className="space-y-1 sm:col-span-2">
@@ -266,7 +266,7 @@ export default function ApartmentsPage() {
                 type="file"
                 accept="image/*"
                 onChange={(event) => void onImagePick(event)}
-                className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
+                className="block w-full text-sm text-black file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
               />
               {form.imageUrl && (
                 <img
