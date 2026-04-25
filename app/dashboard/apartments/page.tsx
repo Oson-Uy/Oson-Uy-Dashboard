@@ -16,10 +16,10 @@ type Apartment = {
 
 type ApartmentForm = {
   projectId: number;
-  price: number;
-  rooms: number;
-  area: number;
-  floor: number;
+  price: string;
+  rooms: string;
+  area: string;
+  floor: string;
   imageUrl: string;
 };
 
@@ -28,10 +28,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 const defaultForm: ApartmentForm = {
   projectId: 0,
-  price: 0,
-  rooms: 1,
-  area: 0,
-  floor: 1,
+  price: "",
+  rooms: "1",
+  area: "",
+  floor: "1",
   imageUrl: "",
 };
 
@@ -207,7 +207,7 @@ export default function ApartmentsPage() {
                 min={0}
                 value={form.price}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, price: Number(event.target.value) }))
+                  setForm((current) => ({ ...current, price: event.target.value.replace(/\D/g, "") }))
                 }
                 required
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
@@ -222,7 +222,7 @@ export default function ApartmentsPage() {
                 min={1}
                 value={form.rooms}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, rooms: Number(event.target.value) }))
+                  setForm((current) => ({ ...current, rooms: event.target.value.replace(/\D/g, "") }))
                 }
                 required
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
@@ -237,7 +237,7 @@ export default function ApartmentsPage() {
                 min={1}
                 value={form.area}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, area: Number(event.target.value) }))
+                  setForm((current) => ({ ...current, area: event.target.value.replace(/\D/g, "") }))
                 }
                 required
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
@@ -252,7 +252,7 @@ export default function ApartmentsPage() {
                 min={1}
                 value={form.floor}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, floor: Number(event.target.value) }))
+                  setForm((current) => ({ ...current, floor: event.target.value.replace(/\D/g, "") }))
                 }
                 required
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"

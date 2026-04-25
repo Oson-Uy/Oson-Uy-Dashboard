@@ -6,7 +6,7 @@ type Project = {
   id: number;
   name: string;
   location: string;
-  priceFrom: number;
+  priceFrom: string;
   imageUrl: string;
   videoUrl?: string;
   deliveryDate: string;
@@ -20,7 +20,7 @@ const STORAGE_KEY = "oson_uy_developer_name";
 const defaultForm: ProjectForm = {
   name: "",
   location: "",
-  priceFrom: 0,
+  priceFrom: "",
   imageUrl: "",
   videoUrl: "",
   deliveryDate: "",
@@ -104,8 +104,11 @@ export default function ProjectsPage() {
       setDevelopers(devs);
       setActiveDeveloperId(currentDeveloper.id);
       setForm((current) => ({ ...current, developerId: currentDeveloper.id }));
+      const ownProjects = projectsData.filter(
+        (project) => project.developerId === currentDeveloper.id,
+      );
       setProjects(
-        projectsData.map((project) => ({
+        ownProjects.map((project) => ({
           id: project.id,
           name: project.name,
           location: project.location,
@@ -114,8 +117,8 @@ export default function ProjectsPage() {
           deliveryDate: project.deliveryDate,
           developerId: project.developerId,
           priceFrom: project.apartments.length
-            ? Math.min(...project.apartments.map((apt) => apt.price))
-            : 0,
+            ? String(Math.min(...project.apartments.map((apt) => apt.price)))
+            : "",
         })),
       );
     } catch (err) {
@@ -268,7 +271,7 @@ export default function ProjectsPage() {
             min={0}
             value={form.priceFrom}
             onChange={(event) =>
-              setForm((p) => ({ ...p, priceFrom: Number(event.target.value) }))
+              setForm((p) => ({ ...p, priceFrom: event.target.value.replace(/\D/g, "") }))
             }
             required
             className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
@@ -378,7 +381,8 @@ export default function ProjectsPage() {
             <h3 className="text-lg font-bold text-[#1E3A8A]">{project.name}</h3>
             <p className="mt-1 text-slate-600">{project.location}</p>
             <p className="mt-2 text-base font-semibold text-[#F97316]">
-              from ${project.priceFrom.toLocaleString()}
+              from $
+              {(project.priceFrom ? Number(project.priceFrom) : 0).toLocaleString()}
             </p>
             <p className="mt-2 truncate text-sm text-slate-500">
               image: {project.imageUrl}

@@ -19,10 +19,11 @@ type ApiLead = {
   phone: string;
   status: LeadStatus;
   createdAt: string;
-  project: { name: string } | null;
+  project: { id: number; name: string; developerId: number } | null;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+const STORAGE_KEY = "oson_uy_developer_name";
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -33,15 +34,32 @@ export default function LeadsPage() {
     try {
       setLoading(true);
       setError(null);
-
-      const response = await fetch(`${API_URL}/leads`, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`Failed to load leads (${response.status})`);
+      const developerName = window.localStorage.getItem(STORAGE_KEY)?.trim();
+      if (!developerName) {
+        throw new Error("Введите имя застройщика в dashboard");
       }
 
+      const [response, developersRes] = await Promise.all([
+        fetch(`${API_URL}/leads`, { cache: "no-store" }),
+        fetch(`${API_URL}/developers`, { cache: "no-store" }),
+      ]);
+      if (!response.ok || !developersRes.ok) {
+        throw new Error("Failed to load leads or developers");
+      }
+
+      const developers = (await developersRes.json()) as Array<{ id: number; name: string }>;
+      const currentDeveloper = developers.find(
+        (developer) => developer.name.toLowerCase() === developerName.toLowerCase(),
+      );
+      if (!currentDeveloper) {
+        setLeads([]);
+        return;
+      }
       const data = (await response.json()) as ApiLead[];
       setLeads(
-        data.map((lead) => ({
+        data
+          .filter((lead) => lead.project?.developerId === currentDeveloper.id)
+          .map((lead) => ({
           id: lead.id,
           name: lead.name,
           phone: lead.phone,
