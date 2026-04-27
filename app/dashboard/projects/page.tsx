@@ -11,6 +11,7 @@ type Project = {
   description: string;
   advantages: string;
   mapEmbedUrl: string;
+  qrCodeUrl: string;
   totalFloors: string;
   totalUnits: string;
   priceFrom: string;
@@ -34,6 +35,7 @@ const defaultForm: ProjectForm = {
   description: "",
   advantages: "",
   mapEmbedUrl: "",
+  qrCodeUrl: "",
   totalFloors: "",
   totalUnits: "",
   priceFrom: "",
@@ -48,10 +50,7 @@ const toEmbedMapUrl = (value: string) => {
   const raw = value.trim();
   if (!raw) return "";
   if (raw.includes("/maps/embed") || raw.includes("output=embed")) return raw;
-  if (raw.includes("google.com/maps")) {
-    return `https://www.google.com/maps?q=${encodeURIComponent(raw)}&output=embed`;
-  }
-  return raw;
+  return `https://www.google.com/maps?q=${encodeURIComponent(raw)}&output=embed`;
 };
 
 export default function ProjectsPage() {
@@ -94,6 +93,7 @@ export default function ProjectsPage() {
         description?: string | null;
         advantages?: string[];
         mapEmbedUrl?: string | null;
+        qrCodeUrl?: string | null;
         totalFloors?: number | null;
         totalUnits?: number | null;
         imageUrl: string;
@@ -125,6 +125,7 @@ export default function ProjectsPage() {
           description: project.description ?? "",
           advantages: (project.advantages ?? []).join(", "),
           mapEmbedUrl: project.mapEmbedUrl ?? "",
+          qrCodeUrl: project.qrCodeUrl ?? "",
           totalFloors: project.totalFloors ? String(project.totalFloors) : "",
           totalUnits: project.totalUnits ? String(project.totalUnits) : "",
           imageUrl: project.imageUrl,
@@ -177,6 +178,7 @@ export default function ProjectsPage() {
             .map((item) => item.trim())
             .filter(Boolean),
           mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl) || undefined,
+          qrCodeUrl: form.qrCodeUrl || undefined,
           totalFloors: form.totalFloors ? Number(form.totalFloors) : undefined,
           totalUnits: form.totalUnits ? Number(form.totalUnits) : undefined,
           deliveryDate: form.deliveryDate,
@@ -223,6 +225,7 @@ export default function ProjectsPage() {
       description: project.description,
       advantages: project.advantages,
       mapEmbedUrl: project.mapEmbedUrl,
+      qrCodeUrl: project.qrCodeUrl,
       totalFloors: project.totalFloors,
       totalUnits: project.totalUnits,
       priceFrom: project.priceFrom,
@@ -557,6 +560,17 @@ export default function ProjectsPage() {
             value={form.mapEmbedUrl}
             onChange={(event) =>
               setForm((p) => ({ ...p, mapEmbedUrl: event.target.value }))
+            }
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+          />
+        </label>
+        <label className="space-y-1 sm:col-span-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">projectQrCodeUrl</span>
+          <input
+            type="url"
+            value={form.qrCodeUrl}
+            onChange={(event) =>
+              setForm((p) => ({ ...p, qrCodeUrl: event.target.value }))
             }
             className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />

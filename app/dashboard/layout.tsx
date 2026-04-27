@@ -107,6 +107,12 @@ export default function DashboardLayout({
             >
               Apartments
             </Link>
+            <Link
+              href="/dashboard/profile"
+              className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+            >
+              Profile
+            </Link>
             <button
               type="button"
               onClick={logout}
