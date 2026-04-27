@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
 
 type Project = {
   id: number;
@@ -13,10 +14,13 @@ type Project = {
   totalFloors: string;
   totalUnits: string;
   priceFrom: string;
+  pricePerM2From: string;
   imageUrl: string;
   videoUrl?: string;
   deliveryDate: string;
   developerId: number;
+  plan?: "START" | "PRO" | "PREMIUM" | "ULTIMATE";
+  subscriptionStatus?: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
 };
 
 type ProjectForm = Omit<Project, "id">;
@@ -33,18 +37,22 @@ const defaultForm: ProjectForm = {
   totalFloors: "",
   totalUnits: "",
   priceFrom: "",
+  pricePerM2From: "",
   imageUrl: "",
   videoUrl: "",
   deliveryDate: "",
   developerId: 0,
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
-const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "";
-const adminHeaders = (contentType = true) => ({
-  ...(contentType ? { "Content-Type": "application/json" } : {}),
-  ...(ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : {}),
-});
+const toEmbedMapUrl = (value: string) => {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (raw.includes("/maps/embed") || raw.includes("output=embed")) return raw;
+  if (raw.includes("google.com/maps")) {
+    return `https://www.google.com/maps?q=${encodeURIComponent(raw)}&output=embed`;
+  }
+  return raw;
+};
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -59,6 +67,7 @@ export default function ProjectsPage() {
   const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [qrUploading, setQrUploading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
 
   const submitLabel = useMemo(
     () => (editingId ? "Сохранить изменения" : "Создать проект"),
@@ -76,21 +85,8 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       setError(null);
-      const developerName = window.localStorage.getItem(STORAGE_KEY)?.trim();
-      if (!developerName) {
-        throw new Error("Введите имя застройщика в dashboard");
-      }
-
-      const [projectsRes, developersRes] = await Promise.all([
-        fetch(`${API_URL}/projects`, { cache: "no-store" }),
-        fetch(`${API_URL}/developers`, { cache: "no-store" }),
-      ]);
-
-      if (!projectsRes.ok || !developersRes.ok) {
-        throw new Error("Failed to load projects or developers");
-      }
-
-      const projectsData = (await projectsRes.json()) as Array<{
+      const [projectsData] = await Promise.all([
+        apiFetch<Array<{
         id: number;
         name: string;
         location: string;
@@ -104,28 +100,14 @@ export default function ProjectsPage() {
         videoUrl?: string | null;
         deliveryDate: string;
         media?: Array<{ imageUrl: string }>;
-        apartments: Array<{ price: number }>;
+        apartments: Array<{ price: number; area: number }>;
         developerId: number;
-      }>;
-      let devs = (await developersRes.json()) as Developer[];
-      let currentDeveloper = devs.find(
-        (developer) => developer.name.toLowerCase() === developerName.toLowerCase(),
-      );
-
-      if (!currentDeveloper) {
-        const createDeveloperRes = await fetch(`${API_URL}/developers`, {
-          method: "POST",
-          headers: adminHeaders(),
-          body: JSON.stringify({ name: developerName }),
-        });
-
-        if (!createDeveloperRes.ok) {
-          throw new Error("Не удалось создать застройщика");
-        }
-
-        currentDeveloper = (await createDeveloperRes.json()) as Developer;
-        devs = [...devs, currentDeveloper];
-      }
+        subscription?: { plan: Project["plan"]; status: Project["subscriptionStatus"] } | null;
+      }>>("/projects"),
+      ]);
+      const currentDeveloper = await apiFetch<Developer>("/developers");
+      const devs = [currentDeveloper];
+      window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
 
       setDevelopers(devs);
       setActiveDeveloperId(currentDeveloper.id);
@@ -152,9 +134,23 @@ export default function ProjectsPage() {
           priceFrom: project.apartments.length
             ? String(Math.min(...project.apartments.map((apt) => apt.price)))
             : "",
+          pricePerM2From: project.apartments.length
+            ? String(
+                Math.min(
+                  ...project.apartments
+                    .filter((apt) => apt.area > 0)
+                    .map((apt) => apt.price / apt.area),
+                ).toFixed(0),
+              )
+            : "",
+          plan: project.subscription?.plan,
+          subscriptionStatus: project.subscription?.status,
         })),
       );
     } catch (err) {
+      if (err instanceof ApiAuthError) {
+        clearSession();
+      }
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
@@ -180,7 +176,7 @@ export default function ProjectsPage() {
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean),
-          mapEmbedUrl: form.mapEmbedUrl || undefined,
+          mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl) || undefined,
           totalFloors: form.totalFloors ? Number(form.totalFloors) : undefined,
           totalUnits: form.totalUnits ? Number(form.totalUnits) : undefined,
           deliveryDate: form.deliveryDate,
@@ -194,7 +190,10 @@ export default function ProjectsPage() {
           editingId ? `${API_URL}/projects/${editingId}` : `${API_URL}/projects`,
           {
             method: editingId ? "PATCH" : "POST",
-            headers: adminHeaders(),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
             body: JSON.stringify(payload),
           },
         );
@@ -227,6 +226,7 @@ export default function ProjectsPage() {
       totalFloors: project.totalFloors,
       totalUnits: project.totalUnits,
       priceFrom: project.priceFrom,
+      pricePerM2From: project.pricePerM2From,
       imageUrl: project.imageUrl,
       videoUrl: project.videoUrl ?? "",
       deliveryDate: project.deliveryDate,
@@ -248,7 +248,9 @@ export default function ProjectsPage() {
 
           const response = await fetch(`${API_URL}/upload/image`, {
             method: "POST",
-            headers: adminHeaders(false),
+            headers: {
+              Authorization: `Bearer ${getToken()}`,
+            },
             body: formData,
           });
 
@@ -285,7 +287,9 @@ export default function ProjectsPage() {
       formData.append("file", file);
       const uploadRes = await fetch(`${API_URL}/upload/image`, {
         method: "POST",
-        headers: adminHeaders(false),
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
         body: formData,
       });
       if (!uploadRes.ok) {
@@ -294,7 +298,10 @@ export default function ProjectsPage() {
       const uploaded = (await uploadRes.json()) as { url: string };
       const response = await fetch(`${API_URL}/developers/${activeDeveloperId}`, {
         method: "PATCH",
-        headers: adminHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
         body: JSON.stringify({ qrCodeUrl: uploaded.url }),
       });
       if (!response.ok) {
@@ -308,6 +315,40 @@ export default function ProjectsPage() {
     }
   };
 
+  const upgradePlan = async (
+    projectId: number,
+    plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE",
+  ) => {
+    try {
+      setError(null);
+      setPaymentStatus("Создаем платеж...");
+      const response = await fetch(`${API_URL}/billing/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          projectId,
+          plan,
+          provider: "PAYME",
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Не удалось создать оплату");
+      }
+      const data = (await response.json()) as { checkoutUrl?: string };
+      if (data.checkoutUrl) {
+        setPaymentStatus("Откройте вкладку оплаты и завершите платеж");
+        window.open(data.checkoutUrl, "_blank");
+      }
+      await loadData();
+    } catch (err) {
+      setPaymentStatus("Ошибка оплаты");
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
+  };
+
   return (
     <section className="space-y-6">
       <div>
@@ -316,6 +357,7 @@ export default function ProjectsPage() {
           Управляйте проектами: создавайте новые и редактируйте существующие.
         </p>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {paymentStatus && <p className="mt-2 text-sm text-emerald-700">{paymentStatus}</p>}
       </div>
 
       <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
@@ -566,6 +608,26 @@ export default function ProjectsPage() {
             {!!project.totalUnits && (
               <p className="truncate text-sm text-slate-500">units: {project.totalUnits}</p>
             )}
+            {!!project.pricePerM2From && (
+              <p className="truncate text-sm text-slate-500">
+                from ${Number(project.pricePerM2From).toLocaleString()} / m2
+              </p>
+            )}
+            <p className="truncate text-xs text-slate-500">
+              Plan: {project.plan ?? "START"} ({project.subscriptionStatus ?? "TRIAL"})
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(["START", "PRO", "PREMIUM", "ULTIMATE"] as const).map((tier) => (
+                <button
+                  key={tier}
+                  type="button"
+                  onClick={() => void upgradePlan(project.id, tier)}
+                  className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                >
+                  {tier}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => onEdit(project)}

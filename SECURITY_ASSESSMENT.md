@@ -1,29 +1,24 @@
 # Dashboard Security Assessment
 
 ## Current status
-- Dashboard now supports optional admin API key protection via `x-admin-key`.
-- Sensitive backend operations are guarded by `AdminApiKeyGuard` when `ADMIN_API_KEY` is configured.
-- Ownership filtering is applied in dashboard views for projects, apartments, and leads by developer context.
+- Dashboard uses strict developer authentication with bearer token session.
+- Sensitive backend operations are guarded by developer auth + workspace checks.
+- Ownership filtering is enforced on backend side for projects, apartments, leads and analytics.
 
 ## Implemented hardening
-- Added guarded routes for:
-  - `POST/PATCH /projects`
-  - `POST /projects/:id/reviews`
-  - `POST /apartments`
-  - `POST/PATCH /developers`
-  - `PATCH /leads/:id`
-  - `POST /leads/:id/feedback-request`
-  - `GET /leads/feedback/summary`
-  - `POST /upload/image`
-- Added dashboard support to pass optional admin key via `NEXT_PUBLIC_ADMIN_API_KEY`.
+- Added strict auth/session endpoints: `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
+- Added workspace enforcement (`ProjectMemberGuard`) for project/apartment/billing mutation routes.
+- Added webhook idempotency table and transaction-safe billing updates.
+- Added CORS allowlist support and `helmet`.
+- Added global throttling via `@nestjs/throttler`.
 
 ## Remaining risks
-- Developer identity still relies on localStorage name; this is not strong authentication.
-- Admin key in browser env is better than nothing but still exposed to client runtime.
-- No per-user RBAC yet.
+- Merchant credentials and webhook secret still need production provisioning/rotation.
+- Payment provider URLs are placeholders until real Payme/Click integration is connected.
+- Role-level permissions (`OWNER` vs `MANAGER`) can be further refined per action.
 
 ## Recommended next steps
-1. Move dashboard auth to server-side session (JWT/httpOnly cookie).
-2. Add real developer/user accounts and role checks in backend.
-3. Add rate limiting for public lead endpoint and feedback submit endpoint.
-4. Add audit logs for create/update actions with actor id and timestamp.
+1. Rotate all leaked/local secrets and move them to deployment secret manager.
+2. Connect real Payme/Click endpoints and signature spec.
+3. Add structured audit logs for create/update/payment webhook actions.
+4. Add integration tests for cross-tenant access denial and payment lifecycle.

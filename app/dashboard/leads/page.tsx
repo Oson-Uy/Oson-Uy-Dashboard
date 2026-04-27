@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
 
 type LeadStatus = "NEW" | "CONTACTED";
 
@@ -23,12 +24,10 @@ type ApiLead = {
   project: { id: number; name: string; developerId: number } | null;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 const STORAGE_KEY = "oson_uy_developer_name";
-const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "";
 const adminHeaders = () => ({
   "Content-Type": "application/json",
-  ...(ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : {}),
+  Authorization: `Bearer ${getToken()}`,
 });
 
 export default function LeadsPage() {
@@ -44,39 +43,14 @@ export default function LeadsPage() {
     try {
       setLoading(true);
       setError(null);
-      const developerName = window.localStorage.getItem(STORAGE_KEY)?.trim();
-      if (!developerName) {
-        throw new Error("Введите имя застройщика в dashboard");
-      }
-
-      const [response, developersRes] = await Promise.all([
-        fetch(`${API_URL}/leads`, { cache: "no-store" }),
-        fetch(`${API_URL}/developers`, { cache: "no-store" }),
-      ]);
-      if (!response.ok || !developersRes.ok) {
-        throw new Error("Failed to load leads or developers");
-      }
-
-      const developers = (await developersRes.json()) as Array<{ id: number; name: string }>;
-      const currentDeveloper = developers.find(
-        (developer) => developer.name.toLowerCase() === developerName.toLowerCase(),
-      );
-      if (!currentDeveloper) {
-        setLeads([]);
-        return;
-      }
-      const data = (await response.json()) as ApiLead[];
-      const feedbackRes = await fetch(`${API_URL}/leads/feedback/summary`, {
-        cache: "no-store",
-        headers: ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : undefined,
-      });
-      if (feedbackRes.ok) {
-        const feedbackData = (await feedbackRes.json()) as {
-          avgRating: number | null;
-          totalFeedbacks: number;
-        };
-        setFeedbackStats(feedbackData);
-      }
+      const data = await apiFetch<ApiLead[]>("/leads");
+      const currentDeveloper = await apiFetch<{ id: number; name: string }>("/developers");
+      window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
+      const feedbackData = await apiFetch<{
+        avgRating: number | null;
+        totalFeedbacks: number;
+      }>("/leads/feedback/summary");
+      setFeedbackStats(feedbackData);
       setLeads(
         data
           .filter((lead) => lead.project?.developerId === currentDeveloper.id)
@@ -91,6 +65,9 @@ export default function LeadsPage() {
         })),
       );
     } catch (err) {
+      if (err instanceof ApiAuthError) {
+        clearSession();
+      }
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
@@ -137,7 +114,9 @@ export default function LeadsPage() {
     try {
       const response = await fetch(`${API_URL}/leads/${id}/feedback-request`, {
         method: "POST",
-        headers: ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : undefined,
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
       });
       if (!response.ok) {
         throw new Error(`Failed to create feedback link (${response.status})`);

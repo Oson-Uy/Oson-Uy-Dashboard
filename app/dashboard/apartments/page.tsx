@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
 
 type ProjectOption = { id: number; name: string; developerId: number };
 type Apartment = {
@@ -24,11 +25,9 @@ type ApartmentForm = {
 };
 
 const STORAGE_KEY = "oson_uy_developer_name";
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
-const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "";
 const adminHeaders = (contentType = true) => ({
   ...(contentType ? { "Content-Type": "application/json" } : {}),
-  ...(ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : {}),
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 const defaultForm: ApartmentForm = {
@@ -49,41 +48,25 @@ export default function ApartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const pricePerM2 =
+    form.price && form.area && Number(form.area) > 0
+      ? Math.round(Number(form.price) / Number(form.area))
+      : null;
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const developerName = window.localStorage.getItem(STORAGE_KEY)?.trim();
-      if (!developerName) {
-        throw new Error("Сначала введите имя застройщика в Dashboard");
-      }
-
-      const [developersRes, projectsRes, apartmentsRes] = await Promise.all([
-        fetch(`${API_URL}/developers`, { cache: "no-store" }),
-        fetch(`${API_URL}/projects`, { cache: "no-store" }),
-        fetch(`${API_URL}/apartments`, { cache: "no-store" }),
+      const [currentDeveloper, allProjects, allApartments] = await Promise.all([
+        apiFetch<{ id: number; name: string }>("/developers"),
+        apiFetch<ProjectOption[]>("/projects"),
+        apiFetch<Apartment[]>("/apartments"),
       ]);
-
-      if (!developersRes.ok || !projectsRes.ok || !apartmentsRes.ok) {
-        throw new Error("Не удалось загрузить данные");
-      }
-
-      const developers = (await developersRes.json()) as Array<{ id: number; name: string }>;
-      const currentDeveloper = developers.find(
-        (item) => item.name.toLowerCase() === developerName.toLowerCase(),
-      );
-      if (!currentDeveloper) {
-        throw new Error("Застройщик не найден. Создайте сначала проект.");
-      }
-
-      const allProjects = (await projectsRes.json()) as ProjectOption[];
+      window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
       const ownProjects = allProjects.filter(
         (project) => project.developerId === currentDeveloper.id,
       );
       const ownProjectIds = new Set(ownProjects.map((item) => item.id));
-
-      const allApartments = (await apartmentsRes.json()) as Apartment[];
       const ownApartments = allApartments.filter((item) =>
         ownProjectIds.has(item.projectId),
       );
@@ -95,6 +78,9 @@ export default function ApartmentsPage() {
         projectId: current.projectId || ownProjects[0]?.id || 0,
       }));
     } catch (err) {
+      if (err instanceof ApiAuthError) {
+        clearSession();
+      }
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
@@ -224,6 +210,14 @@ export default function ApartmentsPage() {
                 className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               />
             </label>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Цена за м2 (расчет)
+              </span>
+              <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-[#1E3A8A]">
+                {pricePerM2 ? `$${pricePerM2.toLocaleString()} / m2` : "—"}
+              </div>
+            </div>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
                 Комнат
@@ -316,6 +310,9 @@ export default function ApartmentsPage() {
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[#F97316]">
                   ${apartment.price.toLocaleString()}
+                </p>
+                <p className="text-xs text-slate-500">
+                  ${(apartment.price / apartment.area).toFixed(0)} / m2
                 </p>
                 <button
                   type="button"
