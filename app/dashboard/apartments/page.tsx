@@ -25,6 +25,11 @@ type ApartmentForm = {
 
 const STORAGE_KEY = "oson_uy_developer_name";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "";
+const adminHeaders = (contentType = true) => ({
+  ...(contentType ? { "Content-Type": "application/json" } : {}),
+  ...(ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : {}),
+});
 
 const defaultForm: ApartmentForm = {
   projectId: 0,
@@ -43,6 +48,7 @@ export default function ApartmentsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const loadData = async () => {
     try {
@@ -111,6 +117,7 @@ export default function ApartmentsPage() {
       formData.append("file", file);
       const response = await fetch(`${API_URL}/upload/image`, {
         method: "POST",
+        headers: adminHeaders(false),
         body: formData,
       });
       if (!response.ok) {
@@ -130,9 +137,11 @@ export default function ApartmentsPage() {
     try {
       setSaving(true);
       setError(null);
-      const response = await fetch(`${API_URL}/apartments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch(
+        editingId ? `${API_URL}/apartments/${editingId}` : `${API_URL}/apartments`,
+        {
+          method: editingId ? "PATCH" : "POST",
+        headers: adminHeaders(),
         body: JSON.stringify({
           projectId: form.projectId,
           price: Number(form.price),
@@ -141,7 +150,8 @@ export default function ApartmentsPage() {
           floor: Number(form.floor),
           imageUrl: form.imageUrl || undefined,
         }),
-      });
+        },
+      );
       if (!response.ok) {
         throw new Error(`Не удалось создать апартамент (${response.status})`);
       }
@@ -151,6 +161,7 @@ export default function ApartmentsPage() {
         ...defaultForm,
         projectId: current.projectId || projects[0]?.id || 0,
       }));
+      setEditingId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -281,7 +292,13 @@ export default function ApartmentsPage() {
               disabled={saving || uploading || !projects.length}
               className="h-11 rounded-xl bg-[#F97316] px-4 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
             >
-              {saving ? "Сохранение..." : uploading ? "Загрузка фото..." : "Добавить апартамент"}
+              {saving
+                ? "Сохранение..."
+                : uploading
+                  ? "Загрузка фото..."
+                  : editingId
+                    ? "Сохранить изменения"
+                    : "Добавить апартамент"}
             </button>
           </form>
 
@@ -300,6 +317,23 @@ export default function ApartmentsPage() {
                 <p className="mt-1 text-sm font-semibold text-[#F97316]">
                   ${apartment.price.toLocaleString()}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(apartment.id);
+                    setForm({
+                      projectId: apartment.projectId,
+                      price: String(apartment.price),
+                      rooms: String(apartment.rooms),
+                      area: String(apartment.area),
+                      floor: String(apartment.floor),
+                      imageUrl: apartment.imageUrl ?? "",
+                    });
+                  }}
+                  className="mt-3 h-10 rounded-xl bg-[#1E3A8A] px-4 text-xs font-semibold text-white transition hover:bg-[#3C55BE]"
+                >
+                  Редактировать
+                </button>
               </article>
             ))}
           </div>

@@ -11,6 +11,7 @@ type Lead = {
   project: string;
   createdAt: string;
   status: LeadStatus;
+  feedbackUrl?: string;
 };
 
 type ApiLead = {
@@ -24,11 +25,20 @@ type ApiLead = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 const STORAGE_KEY = "oson_uy_developer_name";
+const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "";
+const adminHeaders = () => ({
+  "Content-Type": "application/json",
+  ...(ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : {}),
+});
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackStats, setFeedbackStats] = useState<{
+    avgRating: number | null;
+    totalFeedbacks: number;
+  } | null>(null);
 
   const loadLeads = async () => {
     try {
@@ -56,6 +66,17 @@ export default function LeadsPage() {
         return;
       }
       const data = (await response.json()) as ApiLead[];
+      const feedbackRes = await fetch(`${API_URL}/leads/feedback/summary`, {
+        cache: "no-store",
+        headers: ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : undefined,
+      });
+      if (feedbackRes.ok) {
+        const feedbackData = (await feedbackRes.json()) as {
+          avgRating: number | null;
+          totalFeedbacks: number;
+        };
+        setFeedbackStats(feedbackData);
+      }
       setLeads(
         data
           .filter((lead) => lead.project?.developerId === currentDeveloper.id)
@@ -66,6 +87,7 @@ export default function LeadsPage() {
           project: lead.project?.name ?? "—",
           createdAt: new Date(lead.createdAt).toISOString().slice(0, 10),
           status: lead.status,
+          feedbackUrl: undefined,
         })),
       );
     } catch (err) {
@@ -93,7 +115,7 @@ export default function LeadsPage() {
     try {
       const response = await fetch(`${API_URL}/leads/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: adminHeaders(),
         body: JSON.stringify({ status: "CONTACTED" }),
       });
 
@@ -104,6 +126,26 @@ export default function LeadsPage() {
       setLeads((current) =>
         current.map((lead) =>
           lead.id === id ? { ...lead, status: "CONTACTED" } : lead,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
+  };
+
+  const createFeedbackLink = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/leads/${id}/feedback-request`, {
+        method: "POST",
+        headers: ADMIN_API_KEY ? { "x-admin-key": ADMIN_API_KEY } : undefined,
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to create feedback link (${response.status})`);
+      }
+      const data = (await response.json()) as { feedbackUrl: string };
+      setLeads((current) =>
+        current.map((lead) =>
+          lead.id === id ? { ...lead, feedbackUrl: data.feedbackUrl } : lead,
         ),
       );
     } catch (err) {
@@ -141,6 +183,15 @@ export default function LeadsPage() {
           <p className="text-sm text-slate-500">Связались</p>
           <p className="text-2xl font-bold text-[#1E3A8A]">{leadsCount.contacted}</p>
         </div>
+        <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Оценка разговоров</p>
+          <p className="text-2xl font-bold text-[#1E3A8A]">
+            {feedbackStats?.avgRating ?? "—"}
+          </p>
+          <p className="text-xs text-slate-500">
+            Отзывов: {feedbackStats?.totalFeedbacks ?? 0}
+          </p>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-blue-100 bg-white shadow-sm">
@@ -153,6 +204,7 @@ export default function LeadsPage() {
               <th className="px-4 py-3 font-semibold">createdAt</th>
               <th className="px-4 py-3 font-semibold">status</th>
               <th className="px-4 py-3 font-semibold">action</th>
+              <th className="px-4 py-3 font-semibold">feedback</th>
             </tr>
           </thead>
           <tbody>
@@ -182,6 +234,21 @@ export default function LeadsPage() {
                   >
                     Set CONTACTED
                   </button>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => createFeedbackLink(lead.id)}
+                    disabled={lead.status !== "CONTACTED"}
+                    className="h-11 rounded-xl bg-[#1E3A8A] px-4 text-xs font-semibold text-white transition hover:bg-[#3C55BE] disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    Feedback link
+                  </button>
+                  {lead.feedbackUrl && (
+                    <p className="mt-1 max-w-[180px] truncate text-xs text-slate-500">
+                      {lead.feedbackUrl}
+                    </p>
+                  )}
                 </td>
               </tr>
             ))}
