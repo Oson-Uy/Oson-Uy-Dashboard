@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
+import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
 
 type ProjectOption = { id: number; name: string; developerId: number };
 type Apartment = {
@@ -50,7 +51,7 @@ export default function ApartmentsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const pricePerM2 =
     form.price && form.area && Number(form.area) > 0
-      ? Math.round(Number(form.price) / Number(form.area))
+      ? Math.round(parseMoneyInput(form.price) / Number(form.area))
       : null;
 
   const loadData = async () => {
@@ -130,7 +131,7 @@ export default function ApartmentsPage() {
         headers: adminHeaders(),
         body: JSON.stringify({
           projectId: form.projectId,
-          price: Number(form.price),
+          price: parseMoneyInput(form.price),
           rooms: Number(form.rooms),
           area: Number(form.area),
           floor: Number(form.floor),
@@ -197,15 +198,16 @@ export default function ApartmentsPage() {
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Цена (USD)
+                Цена (сум)
               </span>
               <input
-                type="number"
+                type="text"
                 min={0}
                 value={form.price}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, price: event.target.value.replace(/\D/g, "") }))
+                  setForm((current) => ({ ...current, price: formatMoneyInput(event.target.value) }))
                 }
+                placeholder="например 850 000 000"
                 required
                 className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
               />
@@ -215,7 +217,7 @@ export default function ApartmentsPage() {
                 Цена за м2 (расчет)
               </span>
               <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-[#1E3A8A]">
-                {pricePerM2 ? `$${pricePerM2.toLocaleString()} / m2` : "—"}
+                {pricePerM2 ? `${formatUzs(pricePerM2)} / м²` : "—"}
               </div>
             </div>
             <label className="space-y-1">
@@ -309,10 +311,10 @@ export default function ApartmentsPage() {
                   {apartment.rooms} комн. | {apartment.area} м2 | этаж {apartment.floor}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[#F97316]">
-                  ${apartment.price.toLocaleString()}
+                  {formatUzs(apartment.price)}
                 </p>
                 <p className="text-xs text-slate-500">
-                  ${(apartment.price / apartment.area).toFixed(0)} / m2
+                  {formatUzs(apartment.price / apartment.area)} / м²
                 </p>
                 <button
                   type="button"
@@ -320,7 +322,7 @@ export default function ApartmentsPage() {
                     setEditingId(apartment.id);
                     setForm({
                       projectId: apartment.projectId,
-                      price: String(apartment.price),
+                      price: formatMoneyInput(String(Math.round(apartment.price))),
                       rooms: String(apartment.rooms),
                       area: String(apartment.area),
                       floor: String(apartment.floor),

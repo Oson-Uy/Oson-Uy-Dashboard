@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
+import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
 
 type Project = {
   id: number;
@@ -78,7 +79,7 @@ export default function ProjectsPage() {
   const [activePayment, setActivePayment] = useState<{
     plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE";
     externalRef: string;
-    amountUsd: number;
+    amountUzs: number;
     method: "CARD_TRANSFER" | "CASH";
     details: string[];
   } | null>(null);
@@ -359,7 +360,8 @@ export default function ProjectsPage() {
       }
       const data = (await response.json()) as {
         externalRef: string;
-        amountUsd: number;
+        amountUzs?: number;
+        amountUsd?: number;
         paymentMethod: "CARD_TRANSFER" | "CASH";
         instructions?: {
           type: "CARD_TRANSFER" | "CASH";
@@ -384,7 +386,7 @@ export default function ProjectsPage() {
       setActivePayment({
         plan,
         externalRef: data.externalRef,
-        amountUsd: data.amountUsd,
+        amountUzs: data.amountUzs ?? data.amountUsd ?? 0,
         method: data.paymentMethod,
         details,
       });
@@ -437,7 +439,7 @@ export default function ProjectsPage() {
       {activePayment && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
           <p className="text-sm font-semibold text-emerald-800">
-            Заявка #{activePayment.externalRef} на {activePayment.plan} (${activePayment.amountUsd})
+            Заявка #{activePayment.externalRef} на {activePayment.plan} ({formatUzs(activePayment.amountUzs)})
           </p>
           <p className="mt-1 text-sm text-emerald-700">
             Метод: {activePayment.method === "CARD_TRANSFER" ? "Перевод на карту" : "Наличные"}
@@ -533,12 +535,13 @@ export default function ProjectsPage() {
         <label className="space-y-1">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">priceFrom</span>
           <input
-            type="number"
+            type="text"
             min={0}
             value={form.priceFrom}
             onChange={(event) =>
-              setForm((p) => ({ ...p, priceFrom: event.target.value.replace(/\D/g, "") }))
+              setForm((p) => ({ ...p, priceFrom: formatMoneyInput(event.target.value) }))
             }
+            placeholder="например 850 000 000"
             required
             className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
           />
@@ -691,8 +694,7 @@ export default function ProjectsPage() {
             <p className="mt-1 text-slate-600">{project.location}</p>
             {project.district && <p className="text-sm text-slate-500">district: {project.district}</p>}
             <p className="mt-2 text-base font-semibold text-[#F97316]">
-              from $
-              {(project.priceFrom ? Number(project.priceFrom) : 0).toLocaleString()}
+              от {formatUzs(project.priceFrom ? parseMoneyInput(project.priceFrom) : 0)}
             </p>
             <p className="mt-2 truncate text-sm text-slate-500">
               image: {project.imageUrl}
@@ -711,7 +713,7 @@ export default function ProjectsPage() {
             )}
             {!!project.pricePerM2From && (
               <p className="truncate text-sm text-slate-500">
-                from ${Number(project.pricePerM2From).toLocaleString()} / m2
+                от {formatUzs(Number(project.pricePerM2From))} / м²
               </p>
             )}
             <p className="truncate text-xs text-slate-500">
@@ -725,7 +727,7 @@ export default function ProjectsPage() {
                   onClick={() => void upgradePlan(project.id, tier)}
                   className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
                 >
-                  {tier} (${PLAN_PRICES[tier]})
+                  {tier} ({formatUzs(PLAN_PRICES[tier])})
                 </button>
               ))}
             </div>
