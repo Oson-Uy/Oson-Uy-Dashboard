@@ -27,6 +27,12 @@ type Project = {
 type ProjectForm = Omit<Project, "id">;
 type Developer = { id: number; name: string; qrCodeUrl?: string };
 const STORAGE_KEY = "oson_uy_developer_name";
+const PLAN_PRICES: Record<"START" | "PRO" | "PREMIUM" | "ULTIMATE", number> = {
+  START: 149,
+  PRO: 249,
+  PREMIUM: 399,
+  ULTIMATE: 500,
+};
 
 const defaultForm: ProjectForm = {
   name: "",
@@ -67,6 +73,15 @@ export default function ProjectsPage() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [qrUploading, setQrUploading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"CARD_TRANSFER" | "CASH">("CARD_TRANSFER");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [activePayment, setActivePayment] = useState<{
+    plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE";
+    externalRef: string;
+    amountUsd: number;
+    method: "CARD_TRANSFER" | "CASH";
+    details: string[];
+  } | null>(null);
 
   const submitLabel = useMemo(
     () => (editingId ? "Сохранить изменения" : "Создать проект"),
@@ -324,7 +339,8 @@ export default function ProjectsPage() {
   ) => {
     try {
       setError(null);
-      setPaymentStatus("Создаем платеж...");
+      setPaymentStatus("Создаем заявку на оплату...");
+      setActivePayment(null);
       const response = await fetch(`${API_URL}/billing/checkout`, {
         method: "POST",
         headers: {
@@ -334,17 +350,45 @@ export default function ProjectsPage() {
         body: JSON.stringify({
           projectId,
           plan,
-          provider: "PAYME",
+          paymentMethod,
+          note: paymentNote || undefined,
         }),
       });
       if (!response.ok) {
-        throw new Error("Не удалось создать оплату");
+        throw new Error("Не удалось создать заявку на оплату");
       }
-      const data = (await response.json()) as { checkoutUrl?: string };
-      if (data.checkoutUrl) {
-        setPaymentStatus("Откройте вкладку оплаты и завершите платеж");
-        window.open(data.checkoutUrl, "_blank");
-      }
+      const data = (await response.json()) as {
+        externalRef: string;
+        amountUsd: number;
+        paymentMethod: "CARD_TRANSFER" | "CASH";
+        instructions?: {
+          type: "CARD_TRANSFER" | "CASH";
+          cardNumber?: string;
+          cardHolder?: string;
+          address?: string;
+          comment?: string;
+        };
+      };
+      const details =
+        data.instructions?.type === "CARD_TRANSFER"
+          ? [
+              `Карта: ${data.instructions.cardNumber || "уточните у менеджера"}`,
+              `Получатель: ${data.instructions.cardHolder || "уточните у менеджера"}`,
+              data.instructions.comment || "После оплаты отправьте чек менеджеру.",
+            ]
+          : [
+              `Адрес кассы: ${data.instructions?.address || "уточните у менеджера"}`,
+              data.instructions?.comment || "Назовите код заявки при оплате.",
+            ];
+
+      setActivePayment({
+        plan,
+        externalRef: data.externalRef,
+        amountUsd: data.amountUsd,
+        method: data.paymentMethod,
+        details,
+      });
+      setPaymentStatus("Заявка создана. Выполните оплату по инструкции ниже.");
       await loadData();
     } catch (err) {
       setPaymentStatus("Ошибка оплаты");
@@ -362,6 +406,49 @@ export default function ProjectsPage() {
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         {paymentStatus && <p className="mt-2 text-sm text-emerald-700">{paymentStatus}</p>}
       </div>
+
+      <div className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm md:grid-cols-3">
+        <label className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Метод оплаты
+          </span>
+          <select
+            value={paymentMethod}
+            onChange={(event) => setPaymentMethod(event.target.value as "CARD_TRANSFER" | "CASH")}
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+          >
+            <option value="CARD_TRANSFER">Перевод на карту</option>
+            <option value="CASH">Наличными</option>
+          </select>
+        </label>
+        <label className="space-y-1 md:col-span-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Комментарий к оплате (опционально)
+          </span>
+          <input
+            value={paymentNote}
+            onChange={(event) => setPaymentNote(event.target.value)}
+            placeholder="Например: оплата завтра до 18:00"
+            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
+          />
+        </label>
+      </div>
+
+      {activePayment && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+          <p className="text-sm font-semibold text-emerald-800">
+            Заявка #{activePayment.externalRef} на {activePayment.plan} (${activePayment.amountUsd})
+          </p>
+          <p className="mt-1 text-sm text-emerald-700">
+            Метод: {activePayment.method === "CARD_TRANSFER" ? "Перевод на карту" : "Наличные"}
+          </p>
+          <div className="mt-2 space-y-1 text-sm text-emerald-800">
+            {activePayment.details.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
         <p className="text-sm font-semibold text-[#1E3A8A]">
@@ -638,7 +725,7 @@ export default function ProjectsPage() {
                   onClick={() => void upgradePlan(project.id, tier)}
                   className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
                 >
-                  {tier}
+                  {tier} (${PLAN_PRICES[tier]})
                 </button>
               ))}
             </div>

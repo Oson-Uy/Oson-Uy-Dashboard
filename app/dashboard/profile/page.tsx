@@ -39,7 +39,7 @@ export default function ProfilePage() {
     <section className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-[#1E3A8A]">Profile</h2>
-        <p className="mt-1 text-slate-600">Профиль застройщика и активные подписки.</p>
+        <p className="mt-1 text-slate-600">Профиль застройщика, тарифы и статус ручной оплаты.</p>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
       {loading ? (
@@ -51,6 +51,9 @@ export default function ProfilePage() {
           <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
             <p className="text-xs uppercase tracking-wide text-slate-500">Developer</p>
             <p className="mt-1 text-xl font-bold text-[#1E3A8A]">{name || "—"}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              Оплата подписок: вручную (наличные или перевод на карту).
+            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {projects.map((project) => (
@@ -64,6 +67,9 @@ export default function ProfilePage() {
                 </p>
                 <p className="text-sm text-slate-600">
                   Status: <span className="font-semibold">{project.subscription?.status ?? "TRIAL"}</span>
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Для активации/продления: создайте заявку в разделе Projects.
                 </p>
               </article>
             ))}
