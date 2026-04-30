@@ -12,7 +12,8 @@ import {
   Search,
   Filter,
   MoreHorizontal,
-  Mail
+  Mail,
+  X
 } from "lucide-react";
 
 type LeadStatus = "NEW" | "CONTACTED";
