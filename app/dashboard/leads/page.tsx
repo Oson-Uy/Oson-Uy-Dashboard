@@ -24,6 +24,19 @@ type ApiLead = {
   project: { id: number; name: string; developerId: number } | null;
 };
 
+type FeedbackItem = {
+  id: number;
+  rating: number;
+  comment: string | null;
+  submittedAt: string;
+  lead: {
+    name: string;
+    project: {
+      name: string;
+    };
+  };
+};
+
 const STORAGE_KEY = "oson_uy_developer_name";
 const adminHeaders = () => ({
   "Content-Type": "application/json",
@@ -37,7 +50,10 @@ export default function LeadsPage() {
   const [feedbackStats, setFeedbackStats] = useState<{
     avgRating: number | null;
     totalFeedbacks: number;
+    items: FeedbackItem[];
   } | null>(null);
+
+  const [selectedLink, setSelectedLink] = useState<string | null>(null);
 
   const loadLeads = async () => {
     try {
@@ -49,6 +65,7 @@ export default function LeadsPage() {
       const feedbackData = await apiFetch<{
         avgRating: number | null;
         totalFeedbacks: number;
+        items: FeedbackItem[];
       }>("/leads/feedback/summary");
       setFeedbackStats(feedbackData);
       setLeads(
@@ -122,11 +139,14 @@ export default function LeadsPage() {
         throw new Error(`Failed to create feedback link (${response.status})`);
       }
       const data = (await response.json()) as { feedbackUrl: string };
+      // Replace localhost:3000 with vercel app link if it's there
+      const finalUrl = data.feedbackUrl.replace("http://localhost:3000", "https://oson-uy-website.vercel.app");
       setLeads((current) =>
         current.map((lead) =>
-          lead.id === id ? { ...lead, feedbackUrl: data.feedbackUrl } : lead,
+          lead.id === id ? { ...lead, feedbackUrl: finalUrl } : lead,
         ),
       );
+      setSelectedLink(finalUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     }
@@ -224,9 +244,12 @@ export default function LeadsPage() {
                     Feedback link
                   </button>
                   {lead.feedbackUrl && (
-                    <p className="mt-1 max-w-[180px] truncate text-xs text-slate-500">
-                      {lead.feedbackUrl}
-                    </p>
+                    <button
+                      onClick={() => setSelectedLink(lead.feedbackUrl!)}
+                      className="mt-1 max-w-[180px] truncate text-xs text-blue-600 underline hover:text-blue-800"
+                    >
+                      Показать ссылку
+                    </button>
                   )}
                 </td>
               </tr>
@@ -234,6 +257,73 @@ export default function LeadsPage() {
           </tbody>
         </table>
       </div>
+      {/* Feedbacks Section */}
+      {feedbackStats && feedbackStats.items && feedbackStats.items.length > 0 && (
+        <div className="mt-12 space-y-6">
+          <h2 className="text-2xl font-bold text-[#1E3A8A]">Отзывы клиентов</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {feedbackStats.items.map((feedback) => (
+              <div key={feedback.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex text-orange-400">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg key={star} className={`h-5 w-5 ${star <= feedback.rating ? "fill-orange-400" : "fill-slate-200"}`} viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {new Date(feedback.submittedAt).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
+                <div className="mb-2 text-sm text-slate-800 italic">
+                  &quot;{feedback.comment || "Без комментария"}&quot;
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">{feedback.lead?.name}</span>
+                  <span className="text-xs font-medium text-slate-500">{feedback.lead?.project?.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Link */}
+      {selectedLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-bold text-slate-900">Ссылка для клиента</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Скопируйте эту ссылку и отправьте её клиенту (например, в Telegram), чтобы он мог оценить работу менеджера.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <input 
+                type="text"
+                readOnly
+                value={selectedLink}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 outline-none"
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedLink);
+                  alert("Ссылка скопирована в буфер обмена!");
+                  setSelectedLink(null);
+                }}
+                className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white hover:bg-blue-700 transition"
+              >
+                Копировать ссылку
+              </button>
+            </div>
+            <button
+              onClick={() => setSelectedLink(null)}
+              className="mt-4 w-full text-sm font-medium text-slate-500 hover:text-slate-700"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
       </>
       )}
     </section>
