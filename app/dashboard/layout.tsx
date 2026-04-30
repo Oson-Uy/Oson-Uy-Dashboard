@@ -108,6 +108,12 @@ export default function DashboardLayout({
               Apartments
             </Link>
             <Link
+              href="/dashboard/billing"
+              className="rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-500"
+            >
+              Billing
+            </Link>
+            <Link
               href="/dashboard/profile"
               className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
             >
