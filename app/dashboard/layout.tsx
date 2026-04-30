@@ -1,8 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession } from "@/lib/api";
+import { 
+  LayoutDashboard, 
+  Users, 
+  Building2, 
+  Home, 
+  UserCircle, 
+  LogOut, 
+  Menu, 
+  X,
+  PlusCircle,
+  Building
+} from "lucide-react";
 
 const STORAGE_KEY = "oson_uy_developer_name";
 const TOKEN_KEY = "oson_uy_token";
@@ -14,6 +27,7 @@ const getInitialToken = () =>
 export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const pathname = usePathname();
   const [developerName, setDeveloperName] = useState(getInitialName);
   const [draftName, setDraftName] = useState(getInitialName);
   const [email, setEmail] = useState("");
@@ -22,6 +36,7 @@ export default function DashboardLayout({
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const saveName = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,6 +71,7 @@ export default function DashboardLayout({
     setDeveloperName("");
     setToken("");
     setCheckingSession(false);
+    setIsSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -76,113 +92,186 @@ export default function DashboardLayout({
     })();
   }, [token]);
 
-  return (
-    <div className="min-h-screen bg-linear-to-b from-white to-slate-50">
-      <header className="border-b border-blue-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-[#1E3A8A]">Oson Uy Dashboard</h1>
-            <p className="text-xs text-slate-500">
-              {developerName
-                ? `Застройщик: ${developerName}`
-                : "Введите имя застройщика для начала работы"}
-            </p>
-          </div>
-          <nav className="flex flex-wrap gap-2">
-            <Link
-              href="/dashboard/leads"
-              className="rounded-xl bg-[#1E3A8A] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3C55BE]"
-            >
-              Leads
-            </Link>
-            <Link
-              href="/dashboard/projects"
-              className="rounded-xl bg-[#F97316] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
-            >
-              Projects
-            </Link>
-            <Link
-              href="/dashboard/apartments"
-              className="rounded-xl bg-slate-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-600"
-            >
-              Apartments
-            </Link>
+  const navItems = [
+    { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Лиды", href: "/dashboard/leads", icon: Users },
+    { name: "Проекты", href: "/dashboard/projects", icon: Building2 },
+    { name: "Квартиры", href: "/dashboard/apartments", icon: Home },
+    { name: "Профиль", href: "/dashboard/profile", icon: UserCircle },
+  ];
 
-            <Link
-              href="/dashboard/profile"
-              className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-            >
-              Profile
+  const sidebarClass = `fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 shadow-2xl transition-transform duration-300 transform md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`;
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col md:flex-row">
+      {/* Sidebar Desktop & Mobile */}
+      <aside className={sidebarClass}>
+        <div className="flex flex-col h-full">
+          {/* Logo Section */}
+          <div className="p-8">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="bg-[#1E3A8A] p-2.5 rounded-2xl shadow-lg shadow-blue-900/20 text-white">
+                <Building className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-[#1E3A8A] leading-tight">Oson <span className="text-[#F97316]">Uy</span></h1>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dashboard</p>
+              </div>
             </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-300"
-            >
-              Logout
-            </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 space-y-2">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setIsSidebarOpen(false)}
+                  className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm transition-all group ${
+                    isActive 
+                      ? "bg-[#1E3A8A] text-white shadow-xl shadow-blue-900/20" 
+                      : "text-slate-500 hover:bg-slate-50 hover:text-[#1E3A8A]"
+                  }`}
+                >
+                  <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400 group-hover:text-[#1E3A8A]"}`} />
+                  {item.name}
+                </Link>
+              );
+            })}
           </nav>
+
+          {/* Bottom Section */}
+          <div className="p-4 border-t border-slate-50">
+            <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Застройщик</p>
+                <p className="text-sm font-bold text-slate-900 truncate">{developerName || "—"}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 hover:border-red-100 transition-all"
+              >
+                <LogOut className="h-4 w-4" />
+                Выйти
+              </button>
+            </div>
+          </div>
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8">
-        {!checkingSession && developerName && token ? children : null}
-      </main>
-      {!checkingSession && (!developerName || !token) ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-          <form
-            onSubmit={saveName}
-            className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-xl"
+      </aside>
+
+      {/* Overlay Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col md:ml-72 min-h-screen">
+        {/* Top Header Mobile */}
+        <header className="md:hidden sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#1E3A8A] p-1.5 rounded-lg text-white">
+              <Building className="h-4 w-4" />
+            </div>
+            <span className="font-black text-[#1E3A8A]">Oson Uy</span>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-xl bg-slate-50 text-slate-600 border border-slate-100"
           >
-            <h2 className="text-lg font-bold text-[#1E3A8A]">
-              {isRegister ? "Регистрация застройщика" : "Вход в кабинет застройщика"}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {isRegister
-                ? "Создайте аккаунт, чтобы получить 1 месяц бесплатного доступа."
-                : "Войдите в аккаунт для доступа к проектному dashboard."}
-            </p>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            {isRegister && (
-              <input
-                value={draftName}
-                onChange={(event) => setDraftName(event.target.value)}
-                placeholder="Название компании"
-                className="h-11 w-full rounded-xl text-black border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-                required
-              />
-            )}
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="email@example.com"
-              className="h-11 w-full rounded-xl text-black border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              required
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Пароль"
-              className="h-11 w-full rounded-xl text-black border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              required
-            />
-            <button
-              type="submit"
-              className="h-11 w-full rounded-xl bg-[#F97316] text-sm font-semibold text-white transition hover:bg-orange-600"
-            >
-              {isRegister ? "Создать аккаунт" : "Войти"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsRegister((current) => !current)}
-              className="text-sm font-semibold text-[#1E3A8A]"
-            >
-              {isRegister ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Зарегистрироваться"}
-            </button>
-          </form>
+            <Menu className="h-6 w-6" />
+          </button>
+        </header>
+
+        {/* Content Container */}
+        <main className="p-6 md:p-12 w-full max-w-7xl mx-auto">
+          {!checkingSession && developerName && token ? children : null}
+        </main>
+      </div>
+
+      {/* Auth Modal */}
+      {!checkingSession && (!developerName || !token) ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="bg-[#1E3A8A] p-10 text-center text-white relative">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Building className="h-32 w-32" />
+              </div>
+              <h2 className="text-3xl font-black uppercase italic tracking-tight">
+                {isRegister ? "Регистрация" : "Вход в кабинет"}
+              </h2>
+              <p className="mt-2 text-blue-100/60 font-bold uppercase text-[10px] tracking-[0.2em]">
+                Oson Uy Developer Dashboard
+              </p>
+            </div>
+            
+            <form onSubmit={saveName} className="p-10 space-y-6">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold text-center italic">
+                  {error}
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {isRegister && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Название компании</label>
+                    <input
+                      value={draftName}
+                      onChange={(event) => setDraftName(event.target.value)}
+                      placeholder="OOO Grand Build"
+                      className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black"
+                      required
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Электронная почта</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="email@example.com"
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Пароль</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="••••••••"
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="h-16 w-full rounded-2xl bg-[#F97316] text-lg font-black text-white shadow-xl shadow-orange-900/20 transition-all active:scale-[0.98] hover:bg-orange-600 uppercase tracking-wider"
+              >
+                {isRegister ? "Создать аккаунт" : "Войти"}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setIsRegister((current) => !current)}
+                className="w-full text-center text-sm font-bold text-[#1E3A8A] hover:underline"
+              >
+                {isRegister ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Зарегистрироваться"}
+              </button>
+            </form>
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
+

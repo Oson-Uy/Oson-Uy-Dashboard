@@ -3,6 +3,19 @@
 import { FormEvent, useEffect, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import { 
+  Plus, 
+  Home, 
+  Layers, 
+  Maximize2, 
+  DollarSign, 
+  Image as ImageIcon,
+  Loader2,
+  Edit2,
+  Trash2,
+  Building2,
+  ArrowRight
+} from "lucide-react";
 
 type ProjectOption = { id: number; name: string; developerId: number };
 type Apartment = {
@@ -49,6 +62,7 @@ export default function ApartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+  
   const pricePerM2 =
     form.price && form.area && Number(form.area) > 0
       ? Math.round(parseMoneyInput(form.price) / Number(form.area))
@@ -82,14 +96,13 @@ export default function ApartmentsPage() {
       if (err instanceof ApiAuthError) {
         clearSession();
       }
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Ошибка загрузки данных");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, []);
 
@@ -140,7 +153,7 @@ export default function ApartmentsPage() {
         },
       );
       if (!response.ok) {
-        throw new Error(`Не удалось создать апартамент (${response.status})`);
+        throw new Error(`Не удалось сохранить квартиру (${response.status})`);
       }
 
       await loadData();
@@ -156,188 +169,216 @@ export default function ApartmentsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1E3A8A] border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-[#1E3A8A]">Apartments</h2>
-        <p className="text-sm text-slate-600">Добавляйте апартаменты к своим проектам.</p>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+    <div className="space-y-10 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">Квартиры</h1>
+        <p className="text-slate-500 font-medium">Управление номерным фондом ваших жилых комплексов.</p>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-blue-100 bg-white p-5 text-slate-500">
-          Загрузка апартаментов...
-        </div>
-      ) : (
-        <>
+      <div className="grid gap-10 lg:grid-cols-5">
+        {/* Form Container */}
+        <div className="lg:col-span-2">
           <form
             onSubmit={onSubmit}
-            className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm sm:grid-cols-2"
+            className="sticky top-8 space-y-6 rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-sm"
           >
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Проект
-              </span>
-              <select
-                value={form.projectId}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    projectId: Number(event.target.value),
-                  }))
-                }
-                required
-                className="h-10 w-full rounded-xl text-black border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              >
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Цена (сум)
-              </span>
-              <input
-                type="text"
-                min={0}
-                value={form.price}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, price: formatMoneyInput(event.target.value) }))
-                }
-                placeholder="например 850 000 000"
-                required
-                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <div className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Цена за м2 (расчет)
-              </span>
-              <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-[#1E3A8A]">
-                {pricePerM2 ? `${formatUzs(pricePerM2)} / м²` : "—"}
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+              {editingId ? <Edit2 className="h-5 w-5 text-orange-500" /> : <Plus className="h-5 w-5 text-blue-600" />}
+              {editingId ? "Редактировать" : "Добавить новую"}
+            </h2>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Выберите проект</label>
+                <div className="relative">
+                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => setForm(f => ({ ...f, projectId: Number(e.target.value) }))}
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black appearance-none"
+                  >
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Комнаты</label>
+                  <input
+                    type="number"
+                    value={form.rooms}
+                    onChange={(e) => setForm(f => ({ ...f, rooms: e.target.value }))}
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Этаж</label>
+                  <input
+                    type="number"
+                    value={form.floor}
+                    onChange={(e) => setForm(f => ({ ...f, floor: e.target.value }))}
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Площадь (м²)</label>
+                <div className="relative">
+                  <Maximize2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="number"
+                    value={form.area}
+                    onChange={(e) => setForm(f => ({ ...f, area: e.target.value }))}
+                    placeholder="45"
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Цена (сум)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={form.price}
+                    onChange={(e) => setForm(f => ({ ...f, price: formatMoneyInput(e.target.value) }))}
+                    placeholder="500 000 000"
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
+                  />
+                </div>
+                {pricePerM2 && (
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-4 mt-1">
+                    ≈ {formatUzs(pricePerM2)} / м²
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Планировка (фото)</label>
+                <div className="relative group cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={onImagePick}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="h-32 w-full rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50 flex flex-col items-center justify-center gap-2 group-hover:bg-slate-100 transition-all">
+                    {uploading ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    ) : form.imageUrl ? (
+                      <img src={form.imageUrl} className="h-full w-full object-contain rounded-2xl p-2" alt="Preview" />
+                    ) : (
+                      <>
+                        <ImageIcon className="h-6 w-6 text-slate-300" />
+                        <span className="text-xs font-bold text-slate-400">Нажмите для загрузки</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Комнат
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={form.rooms}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, rooms: event.target.value.replace(/\D/g, "") }))
-                }
-                required
-                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Площадь (м2)
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={form.area}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, area: event.target.value.replace(/\D/g, "") }))
-                }
-                required
-                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Этаж
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={form.floor}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, floor: event.target.value.replace(/\D/g, "") }))
-                }
-                required
-                className="h-10 w-full text-black rounded-xl border border-slate-300 px-3 text-sm outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Фото апартамента
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => void onImagePick(event)}
-                className="block w-full text-sm text-black file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
-              />
-              {form.imageUrl && (
-                <img
-                  src={form.imageUrl}
-                  alt="Apartment preview"
-                  className="mt-2 h-32 w-full rounded-xl border border-slate-200 object-cover sm:w-48"
-                />
-              )}
-            </label>
-            <button
-              type="submit"
-              disabled={saving || uploading || !projects.length}
-              className="h-11 rounded-xl bg-[#F97316] px-4 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
-            >
-              {saving
-                ? "Сохранение..."
-                : uploading
-                  ? "Загрузка фото..."
-                  : editingId
-                    ? "Сохранить изменения"
-                    : "Добавить апартамент"}
-            </button>
-          </form>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            {apartments.map((apartment) => (
-              <article
-                key={apartment.id}
-                className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm"
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={saving || uploading}
+                className="flex-1 h-16 rounded-2xl bg-[#F97316] text-white font-black uppercase tracking-widest shadow-xl shadow-orange-900/10 hover:bg-orange-600 transition-all disabled:bg-slate-100 disabled:text-slate-400"
               >
-                <p className="font-semibold text-[#1E3A8A]">
-                  {apartment.project?.name ?? `Project #${apartment.projectId}`}
-                </p>
-                <p className="text-sm text-slate-600">
-                  {apartment.rooms} комн. | {apartment.area} м2 | этаж {apartment.floor}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[#F97316]">
-                  {formatUzs(apartment.price)}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {formatUzs(apartment.price / apartment.area)} / м²
-                </p>
+                {saving ? "Сохранение..." : editingId ? "Сохранить" : "Добавить"}
+              </button>
+              {editingId && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setEditingId(apartment.id);
-                    setForm({
-                      projectId: apartment.projectId,
-                      price: formatMoneyInput(String(Math.round(apartment.price))),
-                      rooms: String(apartment.rooms),
-                      area: String(apartment.area),
-                      floor: String(apartment.floor),
-                      imageUrl: apartment.imageUrl ?? "",
-                    });
-                  }}
-                  className="mt-3 h-10 rounded-xl bg-[#1E3A8A] px-4 text-xs font-semibold text-white transition hover:bg-[#3C55BE]"
+                  onClick={() => { setEditingId(null); setForm(defaultForm); }}
+                  className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all"
                 >
-                  Редактировать
+                  <Trash2 className="h-6 w-6" />
                 </button>
-              </article>
-            ))}
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* List Container */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">Список апартаментов</h2>
+            <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-50 px-3 py-1 rounded-full">
+              Всего: {apartments.length}
+            </span>
           </div>
-        </>
-      )}
-    </section>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            {apartments.map((apt) => (
+              <div key={apt.id} className="group relative rounded-3xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="h-20 w-20 rounded-2xl bg-slate-50 flex-shrink-0 flex items-center justify-center border border-slate-100">
+                    {apt.imageUrl ? (
+                      <img src={apt.imageUrl} className="h-full w-full object-contain p-2" alt="Plan" />
+                    ) : (
+                      <Home className="h-8 w-8 text-slate-200" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-900 truncate">{apt.project?.name}</h3>
+                    <p className="text-xs font-black text-blue-600 uppercase mt-1 tracking-tight flex items-center gap-1">
+                      {apt.rooms} комн. <ArrowRight className="h-3 w-3" /> {apt.area} м²
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-end justify-between border-t border-slate-50 pt-4">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Стоимость</p>
+                    <p className="text-lg font-black text-[#F97316] leading-none mt-1">{formatUzs(apt.price)}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingId(apt.id);
+                      setForm({
+                        projectId: apt.projectId,
+                        price: formatMoneyInput(String(Math.round(apt.price))),
+                        rooms: String(apt.rooms),
+                        area: String(apt.area),
+                        floor: String(apt.floor),
+                        imageUrl: apt.imageUrl ?? "",
+                      });
+                    }}
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-[#1E3A8A] hover:text-white transition-all shadow-sm"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div className="absolute top-4 right-4 bg-slate-900/5 backdrop-blur px-2 py-1 rounded-lg">
+                  <span className="text-[10px] font-bold text-slate-600">{apt.floor} этаж</span>
+                </div>
+              </div>
+            ))}
+
+            {apartments.length === 0 && (
+              <div className="col-span-full py-20 text-center space-y-4 rounded-[3rem] border-2 border-dashed border-slate-100">
+                <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                  <Building2 className="h-8 w-8 text-slate-200" />
+                </div>
+                <p className="text-slate-400 font-medium">Пока нет добавленных квартир</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -9,6 +9,29 @@ import {
   getToken,
 } from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import { 
+  Plus, 
+  Building2, 
+  MapPin, 
+  Layers, 
+  Home, 
+  Calendar, 
+  Video, 
+  Image as ImageIcon,
+  CheckCircle2,
+  AlertCircle,
+  QrCode,
+  CreditCard,
+  ChevronRight,
+  Edit2,
+  Trash2,
+  ExternalLink,
+  Loader2,
+  Star,
+  Info,
+  DollarSign,
+  X
+} from "lucide-react";
 
 type Project = {
   id: number;
@@ -78,13 +101,9 @@ export default function ProjectsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(
-    null,
-  );
+  const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"CARD_TRANSFER" | "CASH">(
-    "CARD_TRANSFER",
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"CARD_TRANSFER" | "CASH">("CARD_TRANSFER");
   const [paymentNote, setPaymentNote] = useState("");
   const [activePayment, setActivePayment] = useState<{
     plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE";
@@ -93,19 +112,6 @@ export default function ProjectsPage() {
     method: "CARD_TRANSFER" | "CASH";
     details: string[];
   } | null>(null);
-  const [subscriptionEdit, setSubscriptionEdit] = useState<{
-    projectId: number;
-    status: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
-  } | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    message: string;
-    onConfirm: () => void;
-  } | null>(null);
-
-  const submitLabel = useMemo(
-    () => (editingId ? "Сохранить изменения" : "Создать проект"),
-    [editingId],
-  );
 
   const resetForm = () => {
     setForm(defaultForm);
@@ -118,42 +124,14 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       setError(null);
-      const [projectsData] = await Promise.all([
-        apiFetch<
-          Array<{
-            id: number;
-            name: string;
-            location: string;
-            district?: string | null;
-            description?: string | null;
-            advantages?: string[];
-            mapEmbedUrl?: string | null;
-            qrCodeUrl?: string | null;
-            totalFloors?: number | null;
-            totalUnits?: number | null;
-            imageUrl: string;
-            videoUrl?: string | null;
-            deliveryDate: string;
-            media?: Array<{ imageUrl: string }>;
-            apartments: Array<{ price: number; area: number }>;
-            developerId: number;
-            subscription?: {
-              plan: Project["plan"];
-              status: Project["subscriptionStatus"];
-            } | null;
-          }>
-        >("/projects"),
-      ]);
+      const projectsData = await apiFetch<any[]>("/projects");
       const currentDeveloper = await apiFetch<Developer>("/developers");
-      const devs = [currentDeveloper];
-      window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
-
-      setDevelopers(devs);
+      
+      setDevelopers([currentDeveloper]);
       setActiveDeveloperId(currentDeveloper.id);
       setForm((current) => ({ ...current, developerId: currentDeveloper.id }));
-      const ownProjects = projectsData.filter(
-        (project) => project.developerId === currentDeveloper.id,
-      );
+      
+      const ownProjects = projectsData.filter(p => p.developerId === currentDeveloper.id);
       setProjects(
         ownProjects.map((project) => ({
           id: project.id,
@@ -171,15 +149,15 @@ export default function ProjectsPage() {
           deliveryDate: project.deliveryDate,
           developerId: project.developerId,
           media: project.media,
-          priceFrom: project.apartments.length
-            ? String(Math.min(...project.apartments.map((apt) => apt.price)))
+          priceFrom: project.apartments?.length
+            ? String(Math.min(...project.apartments.map((apt: any) => apt.price)))
             : "",
-          pricePerM2From: project.apartments.length
+          pricePerM2From: project.apartments?.length
             ? String(
                 Math.min(
                   ...project.apartments
-                    .filter((apt) => apt.area > 0)
-                    .map((apt) => apt.price / apt.area),
+                    .filter((apt: any) => apt.area > 0)
+                    .map((apt: any) => apt.price / apt.area),
                 ).toFixed(0),
               )
             : "",
@@ -188,756 +166,396 @@ export default function ProjectsPage() {
         })),
       );
     } catch (err) {
-      if (err instanceof ApiAuthError) {
-        clearSession();
-      }
-      setError(err instanceof Error ? err.message : "Unknown error");
+      if (err instanceof ApiAuthError) clearSession();
+      setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, []);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void (async () => {
-      try {
-        setError(null);
-        const payload = {
-          name: form.name,
-          location: form.location,
-          district: form.district || undefined,
-          description: form.description || undefined,
-          advantages: form.advantages
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-          mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl) || undefined,
-          qrCodeUrl: form.qrCodeUrl || undefined,
-          totalFloors: form.totalFloors ? Number(form.totalFloors) : undefined,
-          totalUnits: form.totalUnits ? Number(form.totalUnits) : undefined,
-          deliveryDate: form.deliveryDate,
-          imageUrl: form.imageUrl,
-          videoUrl: form.videoUrl || undefined,
-          imageUrls: uploadedImageUrls.length ? uploadedImageUrls : undefined,
-          developerId: activeDeveloperId ?? form.developerId,
-        };
+    try {
+      setError(null);
+      const payload = {
+        ...form,
+        advantages: form.advantages.split(",").map(i => i.trim()).filter(Boolean),
+        totalFloors: Number(form.totalFloors) || 0,
+        totalUnits: Number(form.totalUnits) || 0,
+        mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl),
+        imageUrls: uploadedImageUrls.length ? uploadedImageUrls : undefined,
+        developerId: activeDeveloperId,
+      };
 
-        const response = await fetch(
-          editingId
-            ? `${API_URL}/projects/${editingId}`
-            : `${API_URL}/projects`,
-          {
-            method: editingId ? "PATCH" : "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${getToken()}`,
-            },
-            body: JSON.stringify(payload),
+      const response = await fetch(
+        editingId ? `${API_URL}/projects/${editingId}` : `${API_URL}/projects`,
+        {
+          method: editingId ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
           },
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `${editingId ? "Failed to update" : "Failed to create"} project`,
-          );
+          body: JSON.stringify(payload),
         }
+      );
 
-        await loadData();
-        resetForm();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      }
-    })();
+      if (!response.ok) throw new Error("Ошибка сохранения проекта");
+      await loadData();
+      resetForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
   const onEdit = (project: Project) => {
     setEditingId(project.id);
-    setSelectedFiles([]);
-    // Load all images from media, deduplicate with main imageUrl
     const mediaUrls = project.media?.map((m) => m.imageUrl) ?? [];
-    const allImages = mediaUrls.length
-      ? [...new Set([project.imageUrl, ...mediaUrls])].filter(Boolean)
-      : [project.imageUrl].filter(Boolean);
-    setUploadedImageUrls(allImages);
-    setForm({
-      name: project.name,
-      location: project.location,
-      district: project.district,
-      description: project.description,
-      advantages: project.advantages,
-      mapEmbedUrl: project.mapEmbedUrl,
-      qrCodeUrl: project.qrCodeUrl,
-      totalFloors: project.totalFloors,
-      totalUnits: project.totalUnits,
-      priceFrom: project.priceFrom,
-      pricePerM2From: project.pricePerM2From,
-      imageUrl: project.imageUrl,
-      videoUrl: project.videoUrl ?? "",
-      deliveryDate: project.deliveryDate,
-      developerId: project.developerId,
-    });
+    setUploadedImageUrls([...new Set([project.imageUrl, ...mediaUrls])].filter(Boolean));
+    setForm({ ...project });
+    document.getElementById("project-form")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const uploadSelectedImages = async () => {
     if (!selectedFiles.length) return;
-
     try {
       setIsUploading(true);
-      setError(null);
-
       const uploaded = await Promise.all(
         selectedFiles.map(async (file) => {
           const formData = new FormData();
           formData.append("file", file);
-
-          const response = await fetch(`${API_URL}/upload/image`, {
+          const res = await fetch(`${API_URL}/upload/image`, {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${getToken()}`,
-            },
+            headers: { Authorization: `Bearer ${getToken()}` },
             body: formData,
           });
-
-          if (!response.ok) {
-            throw new Error(`Failed to upload image (${response.status})`);
-          }
-
-          const data = (await response.json()) as { url: string };
-          return data.url;
-        }),
+          return (await res.json()).url;
+        })
       );
-
-      setUploadedImageUrls((current) => [...current, ...uploaded]);
-      setForm((current) => ({
-        ...current,
-        imageUrl: current.imageUrl || uploaded[0] || "",
-      }));
+      setUploadedImageUrls(prev => [...prev, ...uploaded]);
+      if (!form.imageUrl) setForm(f => ({ ...f, imageUrl: uploaded[0] }));
       setSelectedFiles([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError("Ошибка загрузки фото");
     } finally {
       setIsUploading(false);
     }
   };
 
-
   const uploadProjectQr = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
       setIsUploadingProjectQr(true);
-      setError(null);
       const formData = new FormData();
       formData.append("file", file);
-      const response = await fetch(`${API_URL}/upload/image`, {
+      const res = await fetch(`${API_URL}/upload/image`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
         body: formData,
       });
-
-      if (!response.ok) throw new Error("Failed to upload project QR");
-
-      const data = (await response.json()) as { url: string };
-      setForm((prev) => ({ ...prev, qrCodeUrl: data.url }));
+      const data = await res.json();
+      setForm(f => ({ ...f, qrCodeUrl: data.url }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload error");
+      setError("Ошибка загрузки QR");
     } finally {
       setIsUploadingProjectQr(false);
     }
   };
 
-  const upgradePlan = async (
-    projectId: number,
-    plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE",
-  ) => {
+  const upgradePlan = async (projectId: number, plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE") => {
     try {
-      setError(null);
-      setPaymentStatus("Создаем заявку на оплату...");
-      setActivePayment(null);
+      setPaymentStatus("Создаем заявку...");
       const response = await fetch(`${API_URL}/billing/checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({
-          projectId,
-          plan,
-          paymentMethod,
-          note: paymentNote || undefined,
-        }),
+        body: JSON.stringify({ projectId, plan, paymentMethod, note: paymentNote }),
       });
-      if (!response.ok) {
-        throw new Error("Не удалось создать заявку на оплату");
-      }
-      const data = (await response.json()) as {
-        externalRef: string;
-        amountUzs?: number;
-        amountUsd?: number;
-        paymentMethod: "CARD_TRANSFER" | "CASH";
-        instructions?: {
-          type: "CARD_TRANSFER" | "CASH";
-          cardNumber?: string;
-          cardHolder?: string;
-          address?: string;
-          comment?: string;
-        };
-      };
-      const details =
-        data.instructions?.type === "CARD_TRANSFER"
-          ? [
-              `Карта: ${data.instructions.cardNumber || "уточните у менеджера"}`,
-              `Получатель: ${data.instructions.cardHolder || "уточните у менеджера"}`,
-              data.instructions.comment ||
-                "После оплаты отправьте чек менеджеру.",
-            ]
-          : [
-              `Адрес кассы: ${data.instructions?.address || "уточните у менеджера"}`,
-              data.instructions?.comment || "Назовите код заявки при оплате.",
-            ];
-
+      const data = await response.json();
       setActivePayment({
         plan,
         externalRef: data.externalRef,
-        amountUzs: data.amountUzs ?? data.amountUsd ?? 0,
+        amountUzs: data.amountUzs || 0,
         method: data.paymentMethod,
-        details,
+        details: [data.instructions?.comment || "Оплатите по реквизитам"],
       });
-      setPaymentStatus("Заявка создана. Выполните оплату по инструкции ниже.");
+      setPaymentStatus("Заявка создана!");
       await loadData();
     } catch (err) {
-      setPaymentStatus("Ошибка оплаты");
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError("Ошибка создания платежа");
     }
   };
 
-  const updateSubscriptionStatus = async (
-    projectId: number,
-    status: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED",
-  ) => {
-    try {
-      setError(null);
-      const response = await fetch(`${API_URL}/billing/subscription-status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ projectId, status }),
-      });
-      if (!response.ok) {
-        throw new Error("Не удалось обновить статус подписки");
-      }
-      await loadData();
-      setPaymentStatus(`✓ Статус подписки изменён на "${status}"`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    }
-  };
-
-  const requestSubscriptionStatusChange = (
-    projectId: number,
-    newStatus: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED",
-  ) => {
-    const statusLabels: Record<typeof newStatus, string> = {
-      TRIAL: "Пробный период",
-      ACTIVE: "Активна",
-      PAST_DUE: "Просрочена",
-      CANCELED: "Отменена",
-      EXPIRED: "Истекла",
-    };
-
-    setConfirmDialog({
-      message: `Вы уверены? Это изменит статус подписки на "${statusLabels[newStatus]}"`,
-      onConfirm: () => {
-        updateSubscriptionStatus(projectId, newStatus);
-        setConfirmDialog(null);
-      },
-    });
-  };
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1E3A8A] border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-[#1E3A8A]">Projects</h2>
-        <p className="mt-1 text-slate-600">
-          Управляйте проектами: создавайте новые и редактируйте существующие.
-        </p>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        {paymentStatus && (
-          <p className="mt-2 text-sm text-emerald-700">{paymentStatus}</p>
-        )}
+    <div className="space-y-10 animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">Проекты</h1>
+          <p className="text-slate-500 font-medium">Создание и управление вашими жилыми комплексами.</p>
+        </div>
+        <button 
+          onClick={() => {
+            document.getElementById("project-form")?.scrollIntoView({ behavior: "smooth" });
+            resetForm();
+          }}
+          className="h-14 px-8 rounded-2xl bg-[#1E3A8A] text-white font-black uppercase tracking-widest shadow-xl shadow-blue-900/10 hover:bg-blue-800 transition-all flex items-center gap-2"
+        >
+          <Plus className="h-5 w-5" /> Новый проект
+        </button>
       </div>
 
-      <div className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm md:grid-cols-3">
-        <label className="space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-            Метод оплаты
-          </span>
-          <select
-            value={paymentMethod}
-            onChange={(event) =>
-              setPaymentMethod(event.target.value as "CARD_TRANSFER" | "CASH")
-            }
-            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-          >
-            <option value="CARD_TRANSFER">Перевод на карту</option>
-            <option value="CASH">Наличными</option>
-          </select>
-        </label>
-        <label className="space-y-1 md:col-span-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-            Комментарий к оплате (опционально)
-          </span>
-          <input
-            value={paymentNote}
-            onChange={(event) => setPaymentNote(event.target.value)}
-            placeholder="Например: оплата завтра до 18:00"
-            className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-          />
-        </label>
-      </div>
-
-      {activePayment && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-          <p className="text-sm font-semibold text-emerald-800">
-            Заявка #{activePayment.externalRef} на {activePayment.plan} (
-            {formatUzs(activePayment.amountUzs)})
-          </p>
-          <p className="mt-1 text-sm text-emerald-700">
-            Метод:{" "}
-            {activePayment.method === "CARD_TRANSFER"
-              ? "Перевод на карту"
-              : "Наличные"}
-          </p>
-          <div className="mt-2 space-y-1 text-sm text-emerald-800">
-            {activePayment.details.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-          </div>
+      {error && (
+        <div className="p-6 bg-red-50 border border-red-100 rounded-3xl text-red-600 font-bold flex items-center gap-3">
+          <AlertCircle className="h-6 w-6" /> {error}
         </div>
       )}
 
-
-      {loading ? (
-        <div className="rounded-2xl border border-blue-100 bg-white p-6 text-slate-500">
-          Загрузка проектов...
-        </div>
-      ) : (
-        <>
-          <form
-            onSubmit={onSubmit}
-            className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm sm:grid-cols-2"
-          >
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                name
-              </span>
-              <input
-                value={form.name}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, name: event.target.value }))
-                }
-                required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                location
-              </span>
-              <input
-                value={form.location}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, location: event.target.value }))
-                }
-                required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                district
-              </span>
-              <input
-                value={form.district}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, district: event.target.value }))
-                }
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                totalFloors
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={form.totalFloors}
-                onChange={(event) =>
-                  setForm((p) => ({
-                    ...p,
-                    totalFloors: event.target.value.replace(/\D/g, ""),
-                  }))
-                }
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                totalUnits
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={form.totalUnits}
-                onChange={(event) =>
-                  setForm((p) => ({
-                    ...p,
-                    totalUnits: event.target.value.replace(/\D/g, ""),
-                  }))
-                }
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                priceFrom
-              </span>
-              <input
-                type="text"
-                min={0}
-                value={form.priceFrom}
-                onChange={(event) =>
-                  setForm((p) => ({
-                    ...p,
-                    priceFrom: formatMoneyInput(event.target.value),
-                  }))
-                }
-                placeholder="например 850 000 000"
-                required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                deliveryDate
-              </span>
-              <input
-                type="text"
-                value={form.deliveryDate}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, deliveryDate: event.target.value }))
-                }
-                required
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <div className="space-y-2 sm:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">
-                Фотографии проекта
-              </span>
-              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(event) =>
-                    setSelectedFiles(Array.from(event.target.files ?? []))
-                  }
-                  className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => void uploadSelectedImages()}
-                  disabled={!selectedFiles.length || isUploading}
-                  className="h-11 rounded-xl bg-[#1E3A8A] px-4 text-sm font-semibold text-white transition hover:bg-[#3C55BE] disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  {isUploading ? "Загрузка..." : "Загрузить фото"}
-                </button>
+      {/* Projects List Grid */}
+      <div className="grid gap-8 sm:grid-cols-2">
+        {projects.map((project) => (
+          <div key={project.id} className="group rounded-[2.5rem] border border-slate-100 bg-white overflow-hidden shadow-sm hover:shadow-2xl transition-all hover:-translate-y-1">
+            <div className="relative h-64">
+              <img src={project.imageUrl} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" alt={project.name} />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+                <div>
+                  <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 block">{project.location}</span>
+                  <h3 className="text-2xl font-black text-white tracking-tight">{project.name}</h3>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => onEdit(project)}
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-
-              {!!uploadedImageUrls.length && (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {uploadedImageUrls.map((url) => {
-                    const isMain = form.imageUrl === url;
-                    return (
-                      <button
-                        key={url}
-                        type="button"
-                        onClick={() =>
-                          setForm((p) => ({ ...p, imageUrl: url }))
-                        }
-                        className={`overflow-hidden rounded-xl border text-left transition ${
-                          isMain
-                            ? "border-[#F97316] ring-2 ring-orange-200"
-                            : "border-slate-200 hover:border-[#1E3A8A]/50"
-                        }`}
-                      >
-                        <img
-                          src={url}
-                          alt="Project"
-                          className="h-28 w-full object-cover"
-                        />
-                        <div className="px-2 py-1 text-xs text-slate-600">
-                          {isMain ? "Главное фото" : "Сделать главным"}
-                        </div>
-                      </button>
-                    );
-                  })}
+              {project.subscriptionStatus === "ACTIVE" && (
+                <div className="absolute top-6 right-6 bg-emerald-500 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg">
+                  Active {project.plan}
                 </div>
               )}
             </div>
-            <div className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                developer
-              </span>
-              <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700">
-                {developers.find((item) => item.id === activeDeveloperId)
-                  ?.name ?? "—"}
-              </div>
-            </div>
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                videoUrl (optional)
-              </span>
-              <input
-                type="url"
-                value={form.videoUrl}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, videoUrl: event.target.value }))
-                }
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                advantages (comma separated)
-              </span>
-              <input
-                value={form.advantages}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, advantages: event.target.value }))
-                }
-                placeholder="Школа рядом, Паркинг, Закрытый двор"
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                description
-              </span>
-              <textarea
-                value={form.description}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, description: event.target.value }))
-                }
-                className="min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                mapEmbedUrl
-              </span>
-              <input
-                type="url"
-                value={form.mapEmbedUrl}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, mapEmbedUrl: event.target.value }))
-                }
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
-            <div className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                QR-код проекта
-              </span>
-              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => void uploadProjectQr(event)}
-                  className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
-                />
-                {isUploadingProjectQr && <span className="text-sm text-slate-500">Загрузка...</span>}
-              </div>
-              {form.qrCodeUrl && (
-                <img
-                  src={form.qrCodeUrl}
-                  alt="Project QR"
-                  className="mt-3 h-28 w-28 rounded-xl border border-slate-200 object-cover"
-                />
-              )}
-            </div>
-            <div className="flex gap-3 sm:col-span-2">
-              <button
-                type="submit"
-                className="h-12 rounded-xl bg-[#F97316] px-6 text-sm font-semibold text-white transition hover:bg-orange-600"
-              >
-                {submitLabel}
-              </button>
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="h-12 rounded-xl bg-slate-200 px-6 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-                >
-                  Отмена
-                </button>
-              )}
-            </div>
-          </form>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {projects.map((project) => (
-              <article
-                key={project.id}
-                className="flex flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="relative h-48 w-full bg-slate-100">
-                  {project.imageUrl ? (
-                    <img
-                      src={project.imageUrl}
-                      alt={project.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-slate-400">
-                      Нет фото
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <ProjectInfoItem icon={<Layers className="h-4 w-4" />} label="Этажность" value={`${project.totalFloors} эт.`} />
+                <ProjectInfoItem icon={<Home className="h-4 w-4" />} label="Квартир" value={`${project.totalUnits} шт.`} />
+                <ProjectInfoItem icon={<Calendar className="h-4 w-4" />} label="Сдача" value={project.deliveryDate} />
+                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label="От" value={formatUzs(Number(project.priceFrom))} />
+              </div>
+
+              <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
+                <div className="flex -space-x-2">
+                  {project.media?.slice(0, 3).map((m, i) => (
+                    <img key={i} src={m.imageUrl} className="h-8 w-8 rounded-full border-2 border-white object-cover" />
+                  ))}
+                  {project.media && project.media.length > 3 && (
+                    <div className="h-8 w-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                      +{project.media.length - 3}
                     </div>
                   )}
-                  <div className="absolute right-3 top-3 flex gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${
-                        project.subscriptionStatus === "ACTIVE"
-                          ? "bg-emerald-500 text-white"
-                          : project.subscriptionStatus === "TRIAL"
-                            ? "bg-blue-500 text-white"
-                            : project.subscriptionStatus === "PAST_DUE"
-                              ? "bg-red-500 text-white"
-                              : "bg-slate-500 text-white"
-                      }`}
-                    >
-                      {project.subscriptionStatus ?? "TRIAL"}
-                    </span>
-                    <span className="rounded-full bg-orange-500 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-                      {project.plan ?? "START"}
-                    </span>
-                  </div>
                 </div>
-
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-lg font-bold text-[#1E3A8A]">
-                    {project.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-600">{project.location}</p>
-                  {project.district && (
-                    <p className="text-sm text-slate-500">
-                      Район: {project.district}
-                    </p>
-                  )}
-                  <p className="mt-2 text-base font-semibold text-[#F97316]">
-                    от{" "}
-                    {formatUzs(
-                      project.priceFrom ? parseMoneyInput(project.priceFrom) : 0,
-                    )}
-                  </p>
-                  
-                  <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-slate-500">
-                    <p className="truncate">Сдача: <span className="font-medium text-slate-700">{project.deliveryDate}</span></p>
-                    <p className="truncate">Видео: <span className="font-medium text-slate-700">{project.videoUrl ? 'Есть' : 'Нет'}</span></p>
-                    {!!project.totalFloors && (
-                      <p className="truncate">Этажей: <span className="font-medium text-slate-700">{project.totalFloors}</span></p>
-                    )}
-                    {!!project.totalUnits && (
-                      <p className="truncate">Квартир: <span className="font-medium text-slate-700">{project.totalUnits}</span></p>
-                    )}
-                  </div>
-                  
-                  {!!project.pricePerM2From && (
-                    <p className="mt-2 text-xs font-medium text-slate-600">
-                      от {formatUzs(Number(project.pricePerM2From))} / м²
-                    </p>
-                  )}
-                </div>
-                <div className="mt-2 flex gap-2">
-                  <select
-                    value={project.subscriptionStatus ?? "TRIAL"}
-                    onChange={(e) => {
-                      const newStatus = e.target.value as
-                        | "TRIAL"
-                        | "ACTIVE"
-                        | "PAST_DUE"
-                        | "CANCELED"
-                        | "EXPIRED";
-                      requestSubscriptionStatusChange(project.id, newStatus);
-                    }}
-                    className="h-8 flex-1 rounded-lg border border-slate-300 px-2 text-xs text-slate-700 outline-none focus:border-[#1E3A8A] focus:ring-1 focus:ring-[#1E3A8A]"
-                  >
-                    <option value="TRIAL">TRIAL</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="PAST_DUE">PAST_DUE</option>
-                    <option value="CANCELED">CANCELED</option>
-                    <option value="EXPIRED">EXPIRED</option>
-                  </select>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(["START", "PRO", "PREMIUM", "ULTIMATE"] as const).map(
-                    (tier) => (
-                      <button
-                        key={tier}
-                        type="button"
-                        onClick={() => void upgradePlan(project.id, tier)}
-                        className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
-                      >
-                        {tier} ({formatUzs(PLAN_PRICES[tier])})
-                      </button>
-                    ),
-                  )}
-                </div>
-                <button
-                  type="button"
+                <button 
                   onClick={() => onEdit(project)}
-                  className="mt-4 h-11 rounded-xl bg-[#1E3A8A] px-5 text-sm font-semibold text-white transition hover:bg-[#3C55BE]"
+                  className="text-sm font-black text-[#1E3A8A] uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all"
                 >
-                  Редактировать
+                  Детали <ChevronRight className="h-4 w-4" />
                 </button>
-              </article>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Confirmation Dialog */}
-      {confirmDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900">Подтверждение</h3>
-            <p className="mt-3 text-slate-600">{confirmDialog.message}</p>
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setConfirmDialog(null)}
-                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Отменить
-              </button>
-              <button
-                onClick={confirmDialog.onConfirm}
-                className="flex-1 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition hover:bg-orange-600"
-              >
-                Подтвердить
-              </button>
+              </div>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Main Form Section */}
+      <div id="project-form" className="scroll-mt-10">
+        <form onSubmit={onSubmit} className="rounded-[3rem] border border-slate-100 bg-white p-10 shadow-sm space-y-12">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+              <Plus className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{editingId ? "Редактировать проект" : "Добавить новый проект"}</h2>
+              <p className="text-sm text-slate-500 font-medium">Заполните данные о вашем жилом комплексе.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2">
+            <div className="space-y-6">
+              <FormInput label="Название ЖК" value={form.name} onChange={(v: string) => setForm(f => ({ ...f, name: v }))} placeholder="ЖК 'Oson Uy'" required />
+              <FormInput label="Локация" value={form.location} onChange={(v: string) => setForm(f => ({ ...f, location: v }))} placeholder="Ташкент, ул. Навои" required />
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Этажность" value={form.totalFloors} onChange={(v: string) => setForm(f => ({ ...f, totalFloors: v }))} type="number" />
+                <FormInput label="Кол-во юнитов" value={form.totalUnits} onChange={(v: string) => setForm(f => ({ ...f, totalUnits: v }))} type="number" />
+              </div>
+              <FormInput label="Дата сдачи" value={form.deliveryDate} onChange={(v: string) => setForm(f => ({ ...f, deliveryDate: v }))} placeholder="2026 IV-кв" required />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Описание</label>
+                <textarea 
+                  value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  className="w-full min-h-[120px] rounded-2xl bg-slate-50 border border-slate-100 p-6 text-sm font-medium outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Медиа (фото)</label>
+                <div className="flex gap-4">
+                  <div className="relative flex-1">
+                    <input type="file" multiple accept="image/*" onChange={e => setSelectedFiles(Array.from(e.target.files || []))} className="absolute inset-0 opacity-0 cursor-pointer" />
+                    <div className="h-14 w-full rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 hover:bg-slate-100 transition-all">
+                      <ImageIcon className="h-4 w-4" /> Выбрать файлы
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={uploadSelectedImages} 
+                    disabled={!selectedFiles.length || isUploading}
+                    className="h-14 px-6 rounded-2xl bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest disabled:opacity-50"
+                  >
+                    {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Загрузить"}
+                  </button>
+                </div>
+                {uploadedImageUrls.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-4">
+                    {uploadedImageUrls.map((url, i) => (
+                      <div key={i} className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${form.imageUrl === url ? "border-orange-500 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"}`} onClick={() => setForm(f => ({ ...f, imageUrl: url }))}>
+                        <img src={url} className="h-full w-full object-cover" />
+                        {form.imageUrl === url && <div className="absolute inset-0 bg-orange-500/10 flex items-center justify-center"><CheckCircle2 className="text-white h-6 w-6" /></div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <FormInput label="Ссылка на видео (YouTube)" value={form.videoUrl || ""} onChange={(v: string) => setForm(f => ({ ...f, videoUrl: v }))} placeholder="https://..." />
+              <FormInput label="Google Maps (Embed/Query)" value={form.mapEmbedUrl} onChange={(v: string) => setForm(f => ({ ...f, mapEmbedUrl: v }))} placeholder="Адрес или ссылка" />
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">QR-код проекта</label>
+                <div className="flex items-center gap-4">
+                  <div className="relative h-20 w-20 rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center bg-slate-50 overflow-hidden">
+                    {form.qrCodeUrl ? <img src={form.qrCodeUrl} className="h-full w-full object-cover" /> : <QrCode className="h-8 w-8 text-slate-200" />}
+                    <input type="file" onChange={uploadProjectQr} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Загрузите QR-код для быстрого доступа <br/>клиентов к PDF или сайту проекта.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4 pt-6">
+            <button type="submit" className="flex-1 h-20 rounded-[2rem] bg-[#F97316] text-white text-xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-orange-900/20 hover:bg-orange-600 transition-all active:scale-[0.98]">
+              {editingId ? "Сохранить изменения" : "Создать проект"}
+            </button>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="h-20 px-10 rounded-[2rem] bg-slate-100 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                Отмена
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Subscription Billing Section */}
+      <div className="rounded-[3rem] bg-slate-900 p-10 text-white space-y-10">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/30">
+            <CreditCard className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black tracking-tight">Подписка и Тарифы</h2>
+            <p className="text-sm text-slate-400 font-medium">Выберите тарифный план для ваших проектов.</p>
+          </div>
         </div>
-      )}
-    </section>
+
+        <div className="grid gap-6 md:grid-cols-4">
+          {Object.entries(PLAN_PRICES).map(([name, price]) => (
+            <div key={name} className="bg-white/5 border border-white/10 rounded-[2rem] p-8 space-y-4 hover:bg-white/10 transition-all group">
+              <h4 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">{name}</h4>
+              <p className="text-3xl font-black">{formatUzs(price)}<span className="text-sm text-slate-500 font-medium">/мес</span></p>
+              <ul className="space-y-2 pt-4">
+                <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Приоритет в поиске</li>
+                <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Аналитика лидов</li>
+                <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Поддержка 24/7</li>
+              </ul>
+              <div className="pt-4 space-y-3">
+                <select 
+                  className="w-full bg-transparent border border-white/10 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:border-blue-500"
+                  onChange={(e) => upgradePlan(Number(e.target.value), name as any)}
+                  defaultValue=""
+                >
+                  <option value="" disabled className="text-black">Выберите проект</option>
+                  {projects.map(p => <option key={p.id} value={p.id} className="text-black">{p.name}</option>)}
+                </select>
+                <button className="w-full py-3 rounded-xl bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest hover:bg-blue-400 hover:text-white transition-all">Подключить</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {activePayment && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6">
+            <div className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center text-white flex-shrink-0 animate-pulse">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <h4 className="text-lg font-black text-emerald-400 italic">Счёт успешно сформирован!</h4>
+              <p className="text-sm font-medium text-slate-300">Инструкция: {activePayment.details[0]}</p>
+              <p className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-widest">Код заявки: #{activePayment.externalRef}</p>
+            </div>
+            <button className="px-8 py-4 rounded-2xl bg-white text-slate-900 font-black uppercase tracking-widest text-xs">Я оплатил</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProjectInfoItem({ icon, label, value }: any) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-1 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+        {icon}
+      </div>
+      <div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">{label}</p>
+        <p className="text-sm font-black text-slate-900 mt-0.5">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function FormInput({ label, value, onChange, placeholder, type = "text", required = false }: any) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{label}</label>
+      <input 
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black"
+      />
+    </div>
   );
 }
