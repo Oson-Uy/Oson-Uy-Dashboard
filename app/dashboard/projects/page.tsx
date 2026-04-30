@@ -30,8 +30,10 @@ import {
   Star,
   Info,
   DollarSign,
-  X
+  X,
+  Navigation
 } from "lucide-react";
+import { UZB_LOCATIONS } from "@/lib/locations";
 
 type Project = {
   id: number;
@@ -59,16 +61,16 @@ type ProjectForm = Omit<Project, "id">;
 type Developer = { id: number; name: string; qrCodeUrl?: string };
 const STORAGE_KEY = "oson_uy_developer_name";
 const PLAN_PRICES: Record<"START" | "PRO" | "PREMIUM" | "ULTIMATE", number> = {
-  START: 1900000,
-  PRO: 3200000,
-  PREMIUM: 5100000,
-  ULTIMATE: 6400000,
+  START: 1000000,
+  PRO: 3000000,
+  PREMIUM: 4000000,
+  ULTIMATE: 5000000,
 };
 
 const defaultForm: ProjectForm = {
   name: "",
-  location: "",
-  district: "",
+  location: UZB_LOCATIONS[0].region,
+  district: UZB_LOCATIONS[0].districts[0],
   description: "",
   advantages: "",
   mapEmbedUrl: "",
@@ -102,16 +104,6 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"CARD_TRANSFER" | "CASH">("CARD_TRANSFER");
-  const [paymentNote, setPaymentNote] = useState("");
-  const [activePayment, setActivePayment] = useState<{
-    plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE";
-    externalRef: string;
-    amountUzs: number;
-    method: "CARD_TRANSFER" | "CASH";
-    details: string[];
-  } | null>(null);
 
   const resetForm = () => {
     setForm(defaultForm);
@@ -181,8 +173,18 @@ export default function ProjectsPage() {
     event.preventDefault();
     try {
       setError(null);
+      const { 
+        id, 
+        media, 
+        priceFrom, 
+        pricePerM2From, 
+        plan, 
+        subscriptionStatus, 
+        ...safeForm 
+      } = form as any;
+
       const payload = {
-        ...form,
+        ...safeForm,
         advantages: form.advantages.split(",").map(i => i.trim()).filter(Boolean),
         totalFloors: Number(form.totalFloors) || 0,
         totalUnits: Number(form.totalUnits) || 0,
@@ -263,32 +265,6 @@ export default function ProjectsPage() {
       setError("Ошибка загрузки QR");
     } finally {
       setIsUploadingProjectQr(false);
-    }
-  };
-
-  const upgradePlan = async (projectId: number, plan: "START" | "PRO" | "PREMIUM" | "ULTIMATE") => {
-    try {
-      setPaymentStatus("Создаем заявку...");
-      const response = await fetch(`${API_URL}/billing/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ projectId, plan, paymentMethod, note: paymentNote }),
-      });
-      const data = await response.json();
-      setActivePayment({
-        plan,
-        externalRef: data.externalRef,
-        amountUzs: data.amountUzs || 0,
-        method: data.paymentMethod,
-        details: [data.instructions?.comment || "Оплатите по реквизитам"],
-      });
-      setPaymentStatus("Заявка создана!");
-      await loadData();
-    } catch (err) {
-      setError("Ошибка создания платежа");
     }
   };
 
@@ -399,7 +375,45 @@ export default function ProjectsPage() {
           <div className="grid gap-8 md:grid-cols-2">
             <div className="space-y-6">
               <FormInput label="Название ЖК" value={form.name} onChange={(v: string) => setForm(f => ({ ...f, name: v }))} placeholder="ЖК 'Oson Uy'" required />
-              <FormInput label="Локация" value={form.location} onChange={(v: string) => setForm(f => ({ ...f, location: v }))} placeholder="Ташкент, ул. Навои" required />
+              
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Регион</label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    value={form.location}
+                    onChange={(e) => {
+                      const region = e.target.value;
+                      const firstDistrict = UZB_LOCATIONS.find(l => l.region === region)?.districts[0] || "";
+                      setForm(f => ({ ...f, location: region, district: firstDistrict }));
+                    }}
+                    required
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black appearance-none"
+                  >
+                    <option value="" disabled>Выберите регион</option>
+                    {UZB_LOCATIONS.map(l => <option key={l.region} value={l.region}>{l.region}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Район</label>
+                <div className="relative">
+                  <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    value={form.district}
+                    onChange={(e) => setForm(f => ({ ...f, district: e.target.value }))}
+                    required
+                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black appearance-none"
+                  >
+                    <option value="" disabled>Выберите район</option>
+                    {(UZB_LOCATIONS.find(l => l.region === form.location)?.districts || []).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <FormInput label="Этажность" value={form.totalFloors} onChange={(v: string) => setForm(f => ({ ...f, totalFloors: v }))} type="number" />
                 <FormInput label="Кол-во юнитов" value={form.totalUnits} onChange={(v: string) => setForm(f => ({ ...f, totalUnits: v }))} type="number" />
@@ -475,57 +489,6 @@ export default function ProjectsPage() {
         </form>
       </div>
 
-      {/* Subscription Billing Section */}
-      <div className="rounded-[3rem] bg-slate-900 p-10 text-white space-y-10">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/30">
-            <CreditCard className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black tracking-tight">Подписка и Тарифы</h2>
-            <p className="text-sm text-slate-400 font-medium">Выберите тарифный план для ваших проектов.</p>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-4">
-          {Object.entries(PLAN_PRICES).map(([name, price]) => (
-            <div key={name} className="bg-white/5 border border-white/10 rounded-[2rem] p-8 space-y-4 hover:bg-white/10 transition-all group">
-              <h4 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">{name}</h4>
-              <p className="text-3xl font-black">{formatUzs(price)}<span className="text-sm text-slate-500 font-medium">/мес</span></p>
-              <ul className="space-y-2 pt-4">
-                <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Приоритет в поиске</li>
-                <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Аналитика лидов</li>
-                <li className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Поддержка 24/7</li>
-              </ul>
-              <div className="pt-4 space-y-3">
-                <select 
-                  className="w-full bg-transparent border border-white/10 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                  onChange={(e) => upgradePlan(Number(e.target.value), name as any)}
-                  defaultValue=""
-                >
-                  <option value="" disabled className="text-black">Выберите проект</option>
-                  {projects.map(p => <option key={p.id} value={p.id} className="text-black">{p.name}</option>)}
-                </select>
-                <button className="w-full py-3 rounded-xl bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest hover:bg-blue-400 hover:text-white transition-all">Подключить</button>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {activePayment && (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6">
-            <div className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center text-white flex-shrink-0 animate-pulse">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <h4 className="text-lg font-black text-emerald-400 italic">Счёт успешно сформирован!</h4>
-              <p className="text-sm font-medium text-slate-300">Инструкция: {activePayment.details[0]}</p>
-              <p className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-widest">Код заявки: #{activePayment.externalRef}</p>
-            </div>
-            <button className="px-8 py-4 rounded-2xl bg-white text-slate-900 font-black uppercase tracking-widest text-xs">Я оплатил</button>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

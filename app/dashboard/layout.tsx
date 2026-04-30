@@ -14,7 +14,8 @@ import {
   Menu, 
   X,
   PlusCircle,
-  Building
+  Building,
+  CreditCard
 } from "lucide-react";
 
 const STORAGE_KEY = "oson_uy_developer_name";
@@ -97,6 +98,7 @@ export default function DashboardLayout({
     { name: "Лиды", href: "/dashboard/leads", icon: Users },
     { name: "Проекты", href: "/dashboard/projects", icon: Building2 },
     { name: "Квартиры", href: "/dashboard/apartments", icon: Home },
+    { name: "Тарифы", href: "/dashboard/subscriptions", icon: CreditCard },
     { name: "Профиль", href: "/dashboard/profile", icon: UserCircle },
   ];
 
