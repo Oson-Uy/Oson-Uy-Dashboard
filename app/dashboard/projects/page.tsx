@@ -74,14 +74,13 @@ export default function ProjectsPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingProjectQr, setIsUploadingProjectQr] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(
     null,
   );
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
-  const [qrUploading, setQrUploading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"CARD_TRANSFER" | "CASH">(
     "CARD_TRANSFER",
@@ -151,7 +150,6 @@ export default function ProjectsPage() {
 
       setDevelopers(devs);
       setActiveDeveloperId(currentDeveloper.id);
-      setQrCodeUrl(currentDeveloper.qrCodeUrl ?? "");
       setForm((current) => ({ ...current, developerId: currentDeveloper.id }));
       const ownProjects = projectsData.filter(
         (project) => project.developerId === currentDeveloper.id,
@@ -327,47 +325,30 @@ export default function ProjectsPage() {
     }
   };
 
-  const uploadDeveloperQr = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+
+  const uploadProjectQr = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !activeDeveloperId) return;
+    if (!file) return;
 
     try {
-      setQrUploading(true);
+      setIsUploadingProjectQr(true);
       setError(null);
       const formData = new FormData();
       formData.append("file", file);
-      const uploadRes = await fetch(`${API_URL}/upload/image`, {
+      const response = await fetch(`${API_URL}/upload/image`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { Authorization: `Bearer ${getToken()}` },
         body: formData,
       });
-      if (!uploadRes.ok) {
-        throw new Error("Не удалось загрузить QR");
-      }
-      const uploaded = (await uploadRes.json()) as { url: string };
-      const response = await fetch(
-        `${API_URL}/developers/${activeDeveloperId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify({ qrCodeUrl: uploaded.url }),
-        },
-      );
-      if (!response.ok) {
-        throw new Error("Не удалось сохранить QR");
-      }
-      setQrCodeUrl(uploaded.url);
+
+      if (!response.ok) throw new Error("Failed to upload project QR");
+
+      const data = (await response.json()) as { url: string };
+      setForm((prev) => ({ ...prev, qrCodeUrl: data.url }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Upload error");
     } finally {
-      setQrUploading(false);
+      setIsUploadingProjectQr(false);
     }
   };
 
@@ -543,29 +524,6 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
-        <p className="text-sm font-semibold text-[#1E3A8A]">
-          QR-код застройщика (для верифицированного профиля)
-        </p>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => void uploadDeveloperQr(event)}
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
-          />
-          {qrUploading && (
-            <span className="text-sm text-slate-500">Загрузка...</span>
-          )}
-        </div>
-        {qrCodeUrl && (
-          <img
-            src={qrCodeUrl}
-            alt="Developer QR"
-            className="mt-3 h-28 w-28 rounded-xl border border-slate-200 object-cover"
-          />
-        )}
-      </div>
 
       {loading ? (
         <div className="rounded-2xl border border-blue-100 bg-white p-6 text-slate-500">
@@ -797,19 +755,27 @@ export default function ProjectsPage() {
                 className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
               />
             </label>
-            <label className="space-y-1 sm:col-span-2">
+            <div className="space-y-1 sm:col-span-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                projectQrCodeUrl
+                QR-код проекта
               </span>
-              <input
-                type="url"
-                value={form.qrCodeUrl}
-                onChange={(event) =>
-                  setForm((p) => ({ ...p, qrCodeUrl: event.target.value }))
-                }
-                className="h-10 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none ring-[#1E3A8A]/30 focus:ring"
-              />
-            </label>
+              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => void uploadProjectQr(event)}
+                  className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#1E3A8A] file:px-3 file:py-2 file:font-semibold file:text-white"
+                />
+                {isUploadingProjectQr && <span className="text-sm text-slate-500">Загрузка...</span>}
+              </div>
+              {form.qrCodeUrl && (
+                <img
+                  src={form.qrCodeUrl}
+                  alt="Project QR"
+                  className="mt-3 h-28 w-28 rounded-xl border border-slate-200 object-cover"
+                />
+              )}
+            </div>
             <div className="flex gap-3 sm:col-span-2">
               <button
                 type="submit"

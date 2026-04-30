@@ -27,12 +27,7 @@ export default function Home() {
           >
             Apartments
           </Link>
-          <Link
-            href="/dashboard/billing"
-            className="flex h-14 items-center justify-center rounded-xl bg-purple-600 text-base font-semibold text-white transition hover:bg-purple-500"
-          >
-            Billing
-          </Link>
+
           <Link
             href="/dashboard/profile"
             className="flex h-14 items-center justify-center rounded-xl bg-emerald-600 text-base font-semibold text-white transition hover:bg-emerald-500"
