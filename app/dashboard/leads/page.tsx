@@ -15,6 +15,8 @@ import {
   Mail,
   X
 } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
+import { formatPhoneNumber } from "@/lib/format";
 
 type LeadStatus = "NEW" | "CONTACTED";
 
@@ -57,6 +59,8 @@ const adminHeaders = () => ({
 });
 
 export default function LeadsPage() {
+  const t = useTranslations("Dashboard.leadsPage");
+  const locale = useLocale();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -184,19 +188,19 @@ export default function LeadsPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">Лиды</h1>
-          <p className="text-slate-500 font-medium text-sm">Управляйте входящими заявками и отзывами клиентов.</p>
+          <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
+          <p className="text-slate-500 font-medium text-sm">{t("subtitle")}</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Поиск..." 
+              placeholder={t("search")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 pl-11 pr-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all w-64"
+              className="h-12 pl-11 pr-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all w-full"
             />
           </div>
           <button className="h-12 w-12 flex items-center justify-center bg-white border border-slate-200 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
@@ -211,25 +215,23 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Stats Mini Grid */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <LeadStatCard label="Всего" value={leadsCount.total} color="text-blue-600" />
-        <LeadStatCard label="Новые" value={leadsCount.new} color="text-orange-600" />
-        <LeadStatCard label="Связались" value={leadsCount.contacted} color="text-emerald-600" />
-        <LeadStatCard label="Рейтинг" value={feedbackStats?.avgRating ? feedbackStats.avgRating.toFixed(1) : "—"} color="text-yellow-500" sub={`Из ${feedbackStats?.totalFeedbacks ?? 0}`} />
+        <LeadStatCard label={t("stats.all")} value={leadsCount.total} color="text-blue-600" />
+        <LeadStatCard label={t("stats.new")} value={leadsCount.new} color="text-orange-600" />
+        <LeadStatCard label={t("stats.contacted")} value={leadsCount.contacted} color="text-emerald-600" />
+        <LeadStatCard label={t("stats.rating")} value={feedbackStats?.avgRating ? feedbackStats.avgRating.toFixed(1) : "—"} color="text-yellow-500" sub={`/ ${feedbackStats?.totalFeedbacks ?? 0}`} />
       </div>
 
-      {/* Table Container */}
       <div className="rounded-[2rem] border border-slate-100 bg-white overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-slate-100">
               <tr>
-                <th className="px-6 py-5">Клиент</th>
-                <th className="px-6 py-5">Проект</th>
-                <th className="px-6 py-5">Статус</th>
-                <th className="px-6 py-5">Действие</th>
-                <th className="px-6 py-5 text-right">Фидбек</th>
+                <th className="px-6 py-5">{t("table.client")}</th>
+                <th className="px-6 py-5">{t("table.project")}</th>
+                <th className="px-6 py-5">{t("table.status")}</th>
+                <th className="px-6 py-5">{t("table.action")}</th>
+                <th className="px-6 py-5 text-right">{t("table.feedback")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -238,12 +240,14 @@ export default function LeadsPage() {
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{lead.name}</div>
                     <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
-                      <PhoneCall className="h-3 w-3" /> {lead.phone}
+                      <PhoneCall className="h-3 w-3" /> {formatPhoneNumber(lead.phone)}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-700">{lead.project}</div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-tight">{lead.createdAt}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-tight">
+                      {new Date(lead.createdAt).toLocaleDateString(locale === "ru" ? 'ru-RU' : 'uz-UZ')}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${
@@ -252,7 +256,7 @@ export default function LeadsPage() {
                         : "bg-blue-100 text-blue-700"
                     }`}>
                       {lead.status === "NEW" ? <Mail className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                      {lead.status}
+                      {t(`status.${lead.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -262,7 +266,7 @@ export default function LeadsPage() {
                       disabled={lead.status === "CONTACTED"}
                       className="h-10 rounded-xl bg-slate-900 px-4 text-xs font-black text-white transition-all hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 uppercase tracking-widest"
                     >
-                      Связаться
+                      {t("btnContact")}
                     </button>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -273,14 +277,14 @@ export default function LeadsPage() {
                         disabled={lead.status !== "CONTACTED"}
                         className="flex items-center gap-2 h-10 rounded-xl bg-blue-50 px-4 text-xs font-black text-blue-700 transition-all hover:bg-blue-100 disabled:opacity-0"
                       >
-                        <Star className="h-3 w-3" /> Отзыв
+                        <Star className="h-3 w-3" /> {t("btnFeedback")}
                       </button>
                       {lead.feedbackUrl && (
                         <button
                           onClick={() => setSelectedLink(lead.feedbackUrl!)}
                           className="text-[10px] font-black text-blue-600 underline uppercase tracking-tighter"
                         >
-                          Показать ссылку
+                          {t("showLink")}
                         </button>
                       )}
                     </div>
@@ -290,7 +294,7 @@ export default function LeadsPage() {
               {filteredLeads.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-medium italic">
-                    Заявок не найдено
+                    {t("noResults")}
                   </td>
                 </tr>
               )}
@@ -299,11 +303,10 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Feedbacks Section */}
       {feedbackStats && feedbackStats.items && feedbackStats.items.length > 0 && (
         <div className="mt-16 space-y-8 animate-in slide-in-from-bottom-4 duration-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black text-[#1E3A8A] tracking-tight">Последние отзывы</h2>
+            <h2 className="text-2xl font-black text-[#1E3A8A] tracking-tight">{t("lastFeedbacks")}</h2>
             <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border border-yellow-100">
               <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
               <span className="font-black text-yellow-700">{feedbackStats.avgRating?.toFixed(1)}</span>
@@ -320,11 +323,11 @@ export default function LeadsPage() {
                     ))}
                   </div>
                   <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
-                    {new Date(feedback.submittedAt).toLocaleDateString('ru-RU')}
+                    {new Date(feedback.submittedAt).toLocaleDateString(locale === "ru" ? 'ru-RU' : 'uz-UZ')}
                   </span>
                 </div>
                 <p className="text-sm text-slate-700 font-medium leading-relaxed italic">
-                  &quot;{feedback.comment || "Без комментария"}&quot;
+                  &quot;{feedback.comment || "..."}&quot;
                 </p>
                 <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
                   <div>
@@ -338,7 +341,6 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Link Modal */}
       {selectedLink && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="w-full max-w-md rounded-[2.5rem] bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-300">
@@ -346,12 +348,8 @@ export default function LeadsPage() {
               <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
                 <Mail className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 uppercase">Ссылка для клиента</h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase">{t("modal.link")}</h3>
             </div>
-            
-            <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">
-              Отправьте эту ссылку клиенту, чтобы он мог оценить работу вашего менеджера.
-            </p>
             
             <div className="space-y-3">
               <div className="relative group">
@@ -367,12 +365,11 @@ export default function LeadsPage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(selectedLink);
-                  // Using a more modern alert placeholder logic
                   setSelectedLink(null);
                 }}
                 className="w-full h-14 rounded-2xl bg-[#1E3A8A] text-sm font-black text-white hover:bg-blue-800 transition-all shadow-xl shadow-blue-900/10 uppercase tracking-widest"
               >
-                Копировать ссылку
+                {t("modal.copy")}
               </button>
             </div>
             
@@ -380,7 +377,7 @@ export default function LeadsPage() {
               onClick={() => setSelectedLink(null)}
               className="mt-6 w-full text-xs font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors"
             >
-              Закрыть
+              {t("modal.close")}
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   API_URL,
   ApiAuthError,
@@ -8,7 +8,7 @@ import {
   clearSession,
   getToken,
 } from "@/lib/api";
-import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import { formatUzs } from "@/lib/currency";
 import { 
   Plus, 
   Building2, 
@@ -21,19 +21,14 @@ import {
   CheckCircle2,
   AlertCircle,
   QrCode,
-  CreditCard,
   ChevronRight,
   Edit2,
-  Trash2,
-  ExternalLink,
   Loader2,
-  Star,
-  Info,
   DollarSign,
-  X,
   Navigation
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
+import { useTranslations, useLocale } from "next-intl";
 
 type Project = {
   id: number;
@@ -59,13 +54,6 @@ type Project = {
 
 type ProjectForm = Omit<Project, "id">;
 type Developer = { id: number; name: string; qrCodeUrl?: string };
-const STORAGE_KEY = "oson_uy_developer_name";
-const PLAN_PRICES: Record<"START" | "PRO" | "PREMIUM" | "ULTIMATE", number> = {
-  START: 1000000,
-  PRO: 3000000,
-  PREMIUM: 4000000,
-  ULTIMATE: 5000000,
-};
 
 const defaultForm: ProjectForm = {
   name: "",
@@ -93,8 +81,9 @@ const toEmbedMapUrl = (value: string) => {
 };
 
 export default function ProjectsPage() {
+  const t = useTranslations("Dashboard.projects");
+  const locale = useLocale();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [developers, setDevelopers] = useState<Developer[]>([]);
   const [form, setForm] = useState<ProjectForm>(defaultForm);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
@@ -119,7 +108,6 @@ export default function ProjectsPage() {
       const projectsData = await apiFetch<any[]>("/projects");
       const currentDeveloper = await apiFetch<Developer>("/developers");
       
-      setDevelopers([currentDeveloper]);
       setActiveDeveloperId(currentDeveloper.id);
       setForm((current) => ({ ...current, developerId: currentDeveloper.id }));
       
@@ -159,7 +147,7 @@ export default function ProjectsPage() {
       );
     } catch (err) {
       if (err instanceof ApiAuthError) clearSession();
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      setError(err instanceof Error ? err.message : "Error loading data");
     } finally {
       setLoading(false);
     }
@@ -205,7 +193,7 @@ export default function ProjectsPage() {
         }
       );
 
-      if (!response.ok) throw new Error("Ошибка сохранения проекта");
+      if (!response.ok) throw new Error("Error saving project");
       await loadData();
       resetForm();
     } catch (err) {
@@ -241,7 +229,7 @@ export default function ProjectsPage() {
       if (!form.imageUrl) setForm(f => ({ ...f, imageUrl: uploaded[0] }));
       setSelectedFiles([]);
     } catch (err) {
-      setError("Ошибка загрузки фото");
+      setError("Error uploading images");
     } finally {
       setIsUploading(false);
     }
@@ -262,7 +250,7 @@ export default function ProjectsPage() {
       const data = await res.json();
       setForm(f => ({ ...f, qrCodeUrl: data.url }));
     } catch (err) {
-      setError("Ошибка загрузки QR");
+      setError("Error uploading QR");
     } finally {
       setIsUploadingProjectQr(false);
     }
@@ -280,8 +268,8 @@ export default function ProjectsPage() {
     <div className="space-y-10 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">Проекты</h1>
-          <p className="text-slate-500 font-medium">Создание и управление вашими жилыми комплексами.</p>
+          <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
+          <p className="text-slate-500 font-medium">{t("subtitle")}</p>
         </div>
         <button 
           onClick={() => {
@@ -290,7 +278,7 @@ export default function ProjectsPage() {
           }}
           className="h-14 px-8 rounded-2xl bg-[#1E3A8A] text-white font-black uppercase tracking-widest shadow-xl shadow-blue-900/10 hover:bg-blue-800 transition-all flex items-center gap-2"
         >
-          <Plus className="h-5 w-5" /> Новый проект
+          <Plus className="h-5 w-5" /> {t("newProject")}
         </button>
       </div>
 
@@ -330,10 +318,10 @@ export default function ProjectsPage() {
 
             <div className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-6">
-                <ProjectInfoItem icon={<Layers className="h-4 w-4" />} label="Этажность" value={`${project.totalFloors} эт.`} />
-                <ProjectInfoItem icon={<Home className="h-4 w-4" />} label="Квартир" value={`${project.totalUnits} шт.`} />
-                <ProjectInfoItem icon={<Calendar className="h-4 w-4" />} label="Сдача" value={project.deliveryDate} />
-                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label="От" value={formatUzs(Number(project.priceFrom))} />
+                <ProjectInfoItem icon={<Layers className="h-4 w-4" />} label={t("info.floors")} value={`${project.totalFloors} ${t("info.floorSuffix")}`} />
+                <ProjectInfoItem icon={<Home className="h-4 w-4" />} label={t("info.units")} value={`${project.totalUnits} ${t("info.unitSuffix")}`} />
+                <ProjectInfoItem icon={<Calendar className="h-4 w-4" />} label={t("info.delivery")} value={project.deliveryDate} />
+                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label={t("info.from")} value={formatUzs(Number(project.priceFrom))} />
               </div>
 
               <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
@@ -351,7 +339,7 @@ export default function ProjectsPage() {
                   onClick={() => onEdit(project)}
                   className="text-sm font-black text-[#1E3A8A] uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all"
                 >
-                  Детали <ChevronRight className="h-4 w-4" />
+                  {t("details")} <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -367,17 +355,17 @@ export default function ProjectsPage() {
               <Plus className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{editingId ? "Редактировать проект" : "Добавить новый проект"}</h2>
-              <p className="text-sm text-slate-500 font-medium">Заполните данные о вашем жилом комплексе.</p>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{editingId ? t("editProject") : t("addProject")}</h2>
+              <p className="text-sm text-slate-500 font-medium">{t("formSubtitle")}</p>
             </div>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2">
             <div className="space-y-6">
-              <FormInput label="Название ЖК" value={form.name} onChange={(v: string) => setForm(f => ({ ...f, name: v }))} placeholder="ЖК 'Oson Uy'" required />
+              <FormInput label={t("form.name")} value={form.name} onChange={(v: string) => setForm(f => ({ ...f, name: v }))} placeholder={t("form.placeholderName")} required />
               
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Регион</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.region")}</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <select
@@ -390,14 +378,14 @@ export default function ProjectsPage() {
                     required
                     className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black appearance-none"
                   >
-                    <option value="" disabled>Выберите регион</option>
+                    <option value="" disabled>{t("form.chooseRegion")}</option>
                     {UZB_LOCATIONS.map(l => <option key={l.region} value={l.region}>{l.region}</option>)}
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Район</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.district")}</label>
                 <div className="relative">
                   <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <select
@@ -406,7 +394,7 @@ export default function ProjectsPage() {
                     required
                     className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black appearance-none"
                   >
-                    <option value="" disabled>Выберите район</option>
+                    <option value="" disabled>{t("form.chooseDistrict")}</option>
                     {(UZB_LOCATIONS.find(l => l.region === form.location)?.districts || []).map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
@@ -415,12 +403,12 @@ export default function ProjectsPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <FormInput label="Этажность" value={form.totalFloors} onChange={(v: string) => setForm(f => ({ ...f, totalFloors: v }))} type="number" />
-                <FormInput label="Кол-во юнитов" value={form.totalUnits} onChange={(v: string) => setForm(f => ({ ...f, totalUnits: v }))} type="number" />
+                <FormInput label={t("form.floors")} value={form.totalFloors} onChange={(v: string) => setForm(f => ({ ...f, totalFloors: v }))} type="number" />
+                <FormInput label={t("form.units")} value={form.totalUnits} onChange={(v: string) => setForm(f => ({ ...f, totalUnits: v }))} type="number" />
               </div>
-              <FormInput label="Дата сдачи" value={form.deliveryDate} onChange={(v: string) => setForm(f => ({ ...f, deliveryDate: v }))} placeholder="2026 IV-кв" required />
+              <FormInput label={t("form.delivery")} value={form.deliveryDate} onChange={(v: string) => setForm(f => ({ ...f, deliveryDate: v }))} placeholder={t("form.placeholderDelivery")} required />
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Описание</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.description")}</label>
                 <textarea 
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -431,12 +419,12 @@ export default function ProjectsPage() {
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Медиа (фото)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.media")}</label>
                 <div className="flex gap-4">
                   <div className="relative flex-1">
                     <input type="file" multiple accept="image/*" onChange={e => setSelectedFiles(Array.from(e.target.files || []))} className="absolute inset-0 opacity-0 cursor-pointer" />
                     <div className="h-14 w-full rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 hover:bg-slate-100 transition-all">
-                      <ImageIcon className="h-4 w-4" /> Выбрать файлы
+                      <ImageIcon className="h-4 w-4" /> {t("form.chooseFiles")}
                     </div>
                   </div>
                   <button 
@@ -445,7 +433,7 @@ export default function ProjectsPage() {
                     disabled={!selectedFiles.length || isUploading}
                     className="h-14 px-6 rounded-2xl bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest disabled:opacity-50"
                   >
-                    {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Загрузить"}
+                    {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("form.upload")}
                   </button>
                 </div>
                 {uploadedImageUrls.length > 0 && (
@@ -460,17 +448,17 @@ export default function ProjectsPage() {
                 )}
               </div>
 
-              <FormInput label="Ссылка на видео (YouTube)" value={form.videoUrl || ""} onChange={(v: string) => setForm(f => ({ ...f, videoUrl: v }))} placeholder="https://..." />
-              <FormInput label="Google Maps (Embed/Query)" value={form.mapEmbedUrl} onChange={(v: string) => setForm(f => ({ ...f, mapEmbedUrl: v }))} placeholder="Адрес или ссылка" />
+              <FormInput label={t("form.video")} value={form.videoUrl || ""} onChange={(v: string) => setForm(f => ({ ...f, videoUrl: v }))} placeholder={t("form.placeholderVideo")} />
+              <FormInput label={t("form.map")} value={form.mapEmbedUrl} onChange={(v: string) => setForm(f => ({ ...f, mapEmbedUrl: v }))} placeholder={t("form.placeholderMap")} />
               
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">QR-код проекта</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.qr")}</label>
                 <div className="flex items-center gap-4">
                   <div className="relative h-20 w-20 rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center bg-slate-50 overflow-hidden">
                     {form.qrCodeUrl ? <img src={form.qrCodeUrl} className="h-full w-full object-cover" /> : <QrCode className="h-8 w-8 text-slate-200" />}
                     <input type="file" onChange={uploadProjectQr} className="absolute inset-0 opacity-0 cursor-pointer" />
                   </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Загрузите QR-код для быстрого доступа <br/>клиентов к PDF или сайту проекта.</p>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">{t("form.qrDesc")}</p>
                 </div>
               </div>
             </div>
@@ -478,11 +466,11 @@ export default function ProjectsPage() {
 
           <div className="flex flex-col md:flex-row gap-4 pt-6">
             <button type="submit" className="flex-1 h-20 rounded-[2rem] bg-[#F97316] text-white text-xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-orange-900/20 hover:bg-orange-600 transition-all active:scale-[0.98]">
-              {editingId ? "Сохранить изменения" : "Создать проект"}
+              {editingId ? t("save") : t("create")}
             </button>
             {editingId && (
               <button type="button" onClick={resetForm} className="h-20 px-10 rounded-[2rem] bg-slate-100 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
-                Отмена
+                {t("cancel")}
               </button>
             )}
           </div>

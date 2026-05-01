@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useTranslations } from "next-intl";
 
 type Project = {
   id: number;
@@ -13,6 +14,7 @@ type Project = {
 };
 
 export default function ProfilePage() {
+  const t = useTranslations("Dashboard.profile");
   const [name, setName] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,21 +40,21 @@ export default function ProfilePage() {
   return (
     <section className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-[#1E3A8A]">Profile</h2>
-        <p className="mt-1 text-slate-600">Профиль застройщика, тарифы и статус ручной оплаты.</p>
+        <h2 className="text-3xl font-bold text-[#1E3A8A]">{t("title")}</h2>
+        <p className="mt-1 text-slate-600">{t("subtitle")}</p>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
       {loading ? (
         <div className="rounded-2xl border border-blue-100 bg-white p-5 text-slate-500">
-          Загрузка профиля...
+          {t("loading")}
         </div>
       ) : (
         <>
           <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Developer</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{t("developer")}</p>
             <p className="mt-1 text-xl font-bold text-[#1E3A8A]">{name || "—"}</p>
             <p className="mt-2 text-sm text-slate-600">
-              Оплата подписок: вручную (наличные или перевод на карту).
+              {t("billingInfo")}
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -63,13 +65,13 @@ export default function ProfilePage() {
               >
                 <h3 className="text-lg font-semibold text-[#1E3A8A]">{project.name}</h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  Plan: <span className="font-semibold">{project.subscription?.plan ?? "START"}</span>
+                  {t("projectPlan")}: <span className="font-semibold">{t(`plans.${project.subscription?.plan ?? "START"}`)}</span>
                 </p>
                 <p className="text-sm text-slate-600">
-                  Status: <span className="font-semibold">{project.subscription?.status ?? "TRIAL"}</span>
+                  {t("projectStatus")}: <span className="font-semibold">{t(`statuses.${project.subscription?.status ?? "TRIAL"}`)}</span>
                 </p>
                 <p className="mt-2 text-xs text-slate-500">
-                  Для активации/продления: создайте заявку в разделе Projects.
+                  {t("activationInfo")}
                 </p>
               </article>
             ))}

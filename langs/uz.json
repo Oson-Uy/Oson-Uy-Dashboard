@@ -1,0 +1,285 @@
+{
+  "Dashboard": {
+    "nav": {
+      "dashboard": "Sharh",
+      "leads": "Arizalar",
+      "projects": "Loyihalar",
+      "apartments": "Xonadonlar",
+      "subscriptions": "Tariflar",
+      "profile": "Profil",
+      "onboarding": "O'qitish"
+    },
+    "auth": {
+      "loginTitle": "Kabinetga kirish",
+      "registerTitle": "Zaboychini ro'yxatdan o'tkazish",
+      "company": "Kompaniya nomi",
+      "email": "Email manzili",
+      "password": "Parol",
+      "loginBtn": "Kirish",
+      "registerBtn": "Ro'yxatdan o'tish",
+      "toggleRegister": "Hali akkauntingiz yo'qmi? Ro'yxatdan o'ting",
+      "toggleLogin": "Akkauntingiz bormi? Kiring",
+      "error": "Avtorizatsiya xatosi",
+      "desc": "Loyihalaringiz va arizalaringizni bir joyda boshqaring."
+    },
+    "common": {
+      "developer": "Quruvchi",
+      "logout": "Chiqish",
+      "title": "Oson Uy Dashboard"
+    },
+    "overview": {
+      "title": "Kabinet sharhi",
+      "welcome": "Xush kelibsiz! Faoliyatingiz haqida qisqacha statistika.",
+      "totalLeads": "Jami arizalar",
+      "projects": "Loyihalar",
+      "avgRating": "O'rtacha reyting",
+      "conversion": "Konversiya",
+      "active": "Faol",
+      "inCatalog": "Katalogda",
+      "reviews": "sharhlar",
+      "processed": "Ishlov berilgan",
+      "recentLeads": "So'nggi arizalar",
+      "allLeads": "Barcha arizalar",
+      "client": "Mijoz",
+      "project": "Loyiha",
+      "status": "Holat",
+      "date": "Sana",
+      "noLeads": "Hozircha yangi arizalar yo'q",
+      "quickActions": "Tezkor harakatlar",
+      "addProject": "Loyiha qo'shish",
+      "addProjectDesc": "Katalogda yangi turar-joy majmuasini yarating",
+      "manageApartments": "Xonadonlarni boshqarish",
+      "manageApartmentsDesc": "Narxlar va mavjudligini yangilang",
+      "setupProfile": "Profilni sozlash",
+      "setupProfileDesc": "Quruvchi haqida ma'lumot",
+      "goTo": "O'tish",
+      "statusLabel": {
+        "NEW": "YANGI",
+        "CONTACTED": "ISHLOV BERILGAN"
+      }
+    },
+    "leadsPage": {
+      "title": "Arizalar",
+      "subtitle": "Kiruvchi so'rovlar va mijozlar sharhlarini boshqaring.",
+      "search": "Qidiruv...",
+      "stats": {
+        "all": "Jami",
+        "new": "Yangi",
+        "contacted": "Bog'lanildi",
+        "rating": "Reyting"
+      },
+      "table": {
+        "client": "Mijoz",
+        "project": "Loyiha",
+        "status": "Holat",
+        "action": "Harakat",
+        "feedback": "Sharh"
+      },
+      "btnContact": "Bog'lanish",
+      "btnFeedback": "Sharh",
+      "showLink": "Havolani ko'rsatish",
+      "noResults": "Arizalar topilmadi",
+      "lastFeedbacks": "So'nggi sharhlar",
+      "modal": {
+        "link": "HAVOLA",
+        "copy": "NUSXALASH",
+        "close": "YOPISH"
+      },
+      "status": {
+        "NEW": "YANGI",
+        "CONTACTED": "BOG'LANILDI"
+      }
+    },
+    "onboarding": {
+      "step": "Qadam",
+      "of": "dan",
+      "next": "Keyingisi",
+      "skip": "O'tkazib yuborish",
+      "finish": "Ishni boshlash",
+      "steps": [
+        {
+          "title": "OsonUy-ga xush kelibsiz",
+          "description": "Biz ushbu kabinetni ko'chmas mulk ob'ektlaringizni maksimal darajada samarali boshqarishingiz va sifatli arizalar olishingiz uchun yaratdik."
+        },
+        {
+          "title": "Loyihalaringiz — sizning yuzingiz",
+          "description": "Turar-joy majmualaringizni «Loyihalar» bo'limiga qo'shing. Tavsif qanchalik batafsil va suratlar sifatli bo'lsa, potentsial xaridorlarning ishonchi shunchalik yuqori bo'ladi."
+        },
+        {
+          "title": "Arizalarni aqlli boshqarish",
+          "description": "Saytdagi barcha so'rovlar «Arizalar» bo'limiga tushadi. Biz sizni yangi arizalar haqida avtomatik ravishda xabardor qilamiz. Konversiyani oshirish uchun ularga o'z vaqtida ishlov bering."
+        },
+        {
+          "title": "Tariflar va Rivojlantirish",
+          "description": "Loyihalaringizni katalogning yuqori qismiga ko'tarish va bizning algoritmlarimiz yordamida 5 baravar ko'p ariza olish uchun Start, Pro va Ultra tariflaridan foydalaning."
+        },
+        {
+          "title": "Hammasi startga tayyor!",
+          "description": "Kompaniyangiz profilini to'ldirish va birinchi loyihangizni qo'shishdan boshlang. Savollar tug'ilsa — bizning qo'llab-quvvatlash xizmatimiz har doim aloqada."
+        }
+      ]
+    },
+    "subscriptions": {
+      "title": "Tarif rejalari",
+      "subtitle": "Loyihalaringizni rivojlantirish va ko'proq ariza olish uchun mos tarifni tanlang.",
+      "current": "Sizning joriy tarifingiz",
+      "upgrade": "Tarifni yaxshilash",
+      "perMonth": "/oy",
+      "popular": "Ommabop tanlov",
+      "features": "Nimalar kiritilgan:",
+      "select": "Rasmiylashtirish",
+      "selectProject": "Loyihaga qo'llash:",
+      "chooseProject": "Loyihani tanlang",
+      "alreadyConnected": "(Ulanib bo'lingan)",
+      "billing": {
+        "title": "To'lov hisobi",
+        "order": "Buyurtma",
+        "plan": "Tarif",
+        "amount": "To'lov summasi",
+        "instructions": "Ko'rsatma",
+        "close": "Yopish",
+        "paid": "To'ladim"
+      },
+      "plans": {
+        "START": {
+          "name": "Start",
+          "features": [
+            "Loyiha uchun 3 tagacha surat",
+            "Majmua haqida asosiy ma'lumot",
+            "Katalogda standart joylashtirish",
+            "Arizalar statistikasiga kirish",
+            "Email orqali qo'llab-quvvatlash"
+          ]
+        },
+        "PRO": {
+          "name": "Pro",
+          "features": [
+            "Loyiha uchun 7 tagacha surat",
+            "Video qo'shish imkoniyati (YouTube/Insta)",
+            " 'Verified Developer' belgisi",
+            "Ustuvor qo'llab-quvvatlash",
+            "Kengaytirilgan tahliliy ma'lumotlar"
+          ]
+        },
+        "ULTIMATE": {
+          "name": "Ultra",
+          "features": [
+            "Cheksiz miqdordagi suratlar",
+            " 'Ommabop' va 'Tekshirilgan' belgilari",
+            "Har doim tavsiyalar tepasida",
+            "Shaxsiy menejer",
+            "Hisobotlarni PDF/Excel-da yuklab olish",
+            "CRM bilan to'g'ridan-to'g'ri integratsiya"
+          ]
+        }
+      }
+    },
+    "projects": {
+      "title": "Mening loyihalarim",
+      "subtitle": "Turar-joy majmualaringiz va yangi qurilishlarni boshqarish.",
+      "add": "Loyiha qo'shish",
+      "search": "Loyihalarni qidirish...",
+      "status": {
+        "active": "Faol",
+        "draft": "Qoralama",
+        "moderation": "Moderatsiyada"
+      },
+      "table": {
+        "name": "Loyiha",
+        "location": "Manzil",
+        "units": "Xonadonlar",
+        "leads": "Arizalar",
+        "status": "Holat",
+        "action": "Harakat"
+      },
+      "edit": "O'zgartirish",
+      "noProjects": "Loyihalar topilmadi. Birinchisini qo'shish vaqti keldi!",
+      "newProject": "Yangi loyiha",
+      "details": "Batafsil",
+      "editProject": "Loyihani tahrirlash",
+      "addProject": "Yangi loyiha qo'shish",
+      "formSubtitle": "Turar-joy majmuangiz haqidagi ma'lumotlarni to'ldiring.",
+      "cancel": "Bekor qilish",
+      "save": "O'zgarishlarni saqlash",
+      "create": "Loyiha yaratish",
+      "info": {
+        "floors": "Qavatlar",
+        "units": "Xonadonlar",
+        "delivery": "Topshirish",
+        "from": "Dan",
+        "floorSuffix": "qav.",
+        "unitSuffix": "ta"
+      },
+      "form": {
+        "name": "TJM nomi",
+        "region": "Viloyat",
+        "district": "Tuman",
+        "floors": "Qavatlar soni",
+        "units": "Xonadonlar soni",
+        "delivery": "Topshirish muddati",
+        "description": "Tavsif",
+        "media": "Media (surat)",
+        "chooseFiles": "Fayllarni tanlash",
+        "upload": "Yuklash",
+        "video": "Video havolasi (YouTube)",
+        "map": "Google Maps (Embed/Query)",
+        "qr": "Loyiha QR-kodi",
+        "qrDesc": "Mijozlar loyihaning PDF yoki saytiga tezkor kirishi uchun QR-kodni yuklang.",
+        "placeholderName": "TJM 'Oson Uy'",
+        "placeholderDelivery": "2026 IV-chorak",
+        "placeholderVideo": "https://...",
+        "placeholderMap": "Manzil yoki havola",
+        "chooseRegion": "Viloyatni tanlang",
+        "chooseDistrict": "Tumanni tanlang"
+      }
+    },
+    "apartments": {
+      "title": "Xonadonlar",
+      "subtitle": "Turar-joy majmualaringizning xonadonlar fondini boshqarish.",
+      "add": "Yangisini qo'shish",
+      "edit": "Tahrirlash",
+      "list": "Xonadonlar ro'yxati",
+      "total": "Jami",
+      "noApartments": "Hozircha qo'shilgan xonadonlar yo'q",
+      "form": {
+        "selectProject": "Loyihani tanlang",
+        "rooms": "Xonalar",
+        "floor": "Qavat",
+        "area": "Maydon (m²)",
+        "price": "Narx (so'm)",
+        "perM2": " m² uchun",
+        "layout": "Planirovka (surat)",
+        "uploadClick": "Yuklash uchun bosing",
+        "saving": "Saqlanmoqda...",
+        "save": "Saqlash",
+        "addNew": "Qo'shish"
+      },
+      "table": {
+        "roomShort": "xon.",
+        "cost": "Qiymati"
+      }
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Zaboychi profili, tariflar va qo'lda to'lov holati.",
+      "loading": "Profil yuklanmoqda...",
+      "developer": "Zaboychi",
+      "billingInfo": "Obunalar to'lovi: qo'lda (naqd yoki kartaga o'tkazish).",
+      "projectPlan": "Tarif",
+      "projectStatus": "Holat",
+      "activationInfo": "Faollashtirish/uzaytirish uchun: Loyihalar bo'limida ariza yarating.",
+      "plans": {
+        "START": "Start",
+        "PRO": "Pro",
+        "ULTIMATE": "Ultra"
+      },
+      "statuses": {
+        "TRIAL": "Sinov muddati",
+        "ACTIVE": "Faol",
+        "EXPIRED": "Muddati tugagan",
+        "PAST_DUE": "To'lov kutilmoqda",
+        "CANCELED": "Bekor qilingan"
+      }
+    }
+  }
+}

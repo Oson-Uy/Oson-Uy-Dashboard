@@ -16,6 +16,7 @@ import {
   Building2,
   ArrowRight
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ProjectOption = { id: number; name: string; developerId: number };
 type Apartment = {
@@ -38,7 +39,6 @@ type ApartmentForm = {
   imageUrl: string;
 };
 
-const STORAGE_KEY = "oson_uy_developer_name";
 const adminHeaders = (contentType = true) => ({
   ...(contentType ? { "Content-Type": "application/json" } : {}),
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
@@ -54,6 +54,7 @@ const defaultForm: ApartmentForm = {
 };
 
 export default function ApartmentsPage() {
+  const t = useTranslations("Dashboard.apartments");
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [form, setForm] = useState<ApartmentForm>(defaultForm);
@@ -63,7 +64,7 @@ export default function ApartmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  const pricePerM2 =
+  const pricePerM2Value =
     form.price && form.area && Number(form.area) > 0
       ? Math.round(parseMoneyInput(form.price) / Number(form.area))
       : null;
@@ -77,7 +78,7 @@ export default function ApartmentsPage() {
         apiFetch<ProjectOption[]>("/projects"),
         apiFetch<Apartment[]>("/apartments"),
       ]);
-      window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
+      
       const ownProjects = allProjects.filter(
         (project) => project.developerId === currentDeveloper.id,
       );
@@ -96,7 +97,7 @@ export default function ApartmentsPage() {
       if (err instanceof ApiAuthError) {
         clearSession();
       }
-      setError(err instanceof Error ? err.message : "Ошибка загрузки данных");
+      setError(err instanceof Error ? err.message : "Error loading data");
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,7 @@ export default function ApartmentsPage() {
         body: formData,
       });
       if (!response.ok) {
-        throw new Error(`Ошибка загрузки фото (${response.status})`);
+        throw new Error(`Error uploading image (${response.status})`);
       }
       const data = (await response.json()) as { url: string };
       setForm((current) => ({ ...current, imageUrl: data.url }));
@@ -153,7 +154,7 @@ export default function ApartmentsPage() {
         },
       );
       if (!response.ok) {
-        throw new Error(`Не удалось сохранить квартиру (${response.status})`);
+        throw new Error(`Failed to save apartment (${response.status})`);
       }
 
       await loadData();
@@ -180,8 +181,8 @@ export default function ApartmentsPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">Квартиры</h1>
-        <p className="text-slate-500 font-medium">Управление номерным фондом ваших жилых комплексов.</p>
+        <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
+        <p className="text-slate-500 font-medium">{t("subtitle")}</p>
       </div>
 
       <div className="grid gap-10 lg:grid-cols-5">
@@ -193,12 +194,12 @@ export default function ApartmentsPage() {
           >
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
               {editingId ? <Edit2 className="h-5 w-5 text-orange-500" /> : <Plus className="h-5 w-5 text-blue-600" />}
-              {editingId ? "Редактировать" : "Добавить новую"}
+              {editingId ? t("edit") : t("add")}
             </h2>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Выберите проект</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.selectProject")}</label>
                 <div className="relative">
                   <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <select
@@ -213,7 +214,7 @@ export default function ApartmentsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Комнаты</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.rooms")}</label>
                   <input
                     type="number"
                     value={form.rooms}
@@ -222,7 +223,7 @@ export default function ApartmentsPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Этаж</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.floor")}</label>
                   <input
                     type="number"
                     value={form.floor}
@@ -233,7 +234,7 @@ export default function ApartmentsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Площадь (м²)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.area")}</label>
                 <div className="relative">
                   <Maximize2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -247,7 +248,7 @@ export default function ApartmentsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Цена (сум)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.price")}</label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -258,15 +259,15 @@ export default function ApartmentsPage() {
                     className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 pl-11 pr-4 text-sm font-bold outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
                   />
                 </div>
-                {pricePerM2 && (
+                {pricePerM2Value && (
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-4 mt-1">
-                    ≈ {formatUzs(pricePerM2)} / м²
+                    ≈ {formatUzs(pricePerM2Value)} {t("form.perM2")}
                   </p>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Планировка (фото)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.layout")}</label>
                 <div className="relative group cursor-pointer">
                   <input
                     type="file"
@@ -282,7 +283,7 @@ export default function ApartmentsPage() {
                     ) : (
                       <>
                         <ImageIcon className="h-6 w-6 text-slate-300" />
-                        <span className="text-xs font-bold text-slate-400">Нажмите для загрузки</span>
+                        <span className="text-xs font-bold text-slate-400">{t("form.uploadClick")}</span>
                       </>
                     )}
                   </div>
@@ -296,7 +297,7 @@ export default function ApartmentsPage() {
                 disabled={saving || uploading}
                 className="flex-1 h-16 rounded-2xl bg-[#F97316] text-white font-black uppercase tracking-widest shadow-xl shadow-orange-900/10 hover:bg-orange-600 transition-all disabled:bg-slate-100 disabled:text-slate-400"
               >
-                {saving ? "Сохранение..." : editingId ? "Сохранить" : "Добавить"}
+                {saving ? t("form.saving") : editingId ? t("form.save") : t("form.addNew")}
               </button>
               {editingId && (
                 <button
@@ -314,9 +315,9 @@ export default function ApartmentsPage() {
         {/* List Container */}
         <div className="lg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">Список апартаментов</h2>
+            <h2 className="text-xl font-bold text-slate-900">{t("list")}</h2>
             <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-50 px-3 py-1 rounded-full">
-              Всего: {apartments.length}
+              {t("total")}: {apartments.length}
             </span>
           </div>
 
@@ -334,14 +335,14 @@ export default function ApartmentsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-900 truncate">{apt.project?.name}</h3>
                     <p className="text-xs font-black text-blue-600 uppercase mt-1 tracking-tight flex items-center gap-1">
-                      {apt.rooms} комн. <ArrowRight className="h-3 w-3" /> {apt.area} м²
+                      {apt.rooms} {t("table.roomShort")} <ArrowRight className="h-3 w-3" /> {apt.area} м²
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-end justify-between border-t border-slate-50 pt-4">
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Стоимость</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("table.cost")}</p>
                     <p className="text-lg font-black text-[#F97316] leading-none mt-1">{formatUzs(apt.price)}</p>
                   </div>
                   <button
@@ -363,7 +364,7 @@ export default function ApartmentsPage() {
                 </div>
                 
                 <div className="absolute top-4 right-4 bg-slate-900/5 backdrop-blur px-2 py-1 rounded-lg">
-                  <span className="text-[10px] font-bold text-slate-600">{apt.floor} этаж</span>
+                  <span className="text-[10px] font-bold text-slate-600">{apt.floor} {t("form.floor").toLowerCase()}</span>
                 </div>
               </div>
             ))}
@@ -373,7 +374,7 @@ export default function ApartmentsPage() {
                 <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
                   <Building2 className="h-8 w-8 text-slate-200" />
                 </div>
-                <p className="text-slate-400 font-medium">Пока нет добавленных квартир</p>
+                <p className="text-slate-400 font-medium">{t("noApartments")}</p>
               </div>
             )}
           </div>

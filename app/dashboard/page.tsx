@@ -13,6 +13,8 @@ import {
   PhoneCall
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
+import { formatPhoneNumber } from "@/lib/format";
 
 type DashboardStats = {
   totalLeads: number;
@@ -32,6 +34,8 @@ type RecentLead = {
 };
 
 export default function DashboardOverview() {
+  const t = useTranslations("Dashboard.overview");
+  const locale = useLocale();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +45,6 @@ export default function DashboardOverview() {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
-        // Fetch leads to calculate stats
         const leads = await apiFetch<any[]>("/leads");
         const feedbacks = await apiFetch<any>("/leads/feedback/summary");
         const projects = await apiFetch<any[]>("/projects");
@@ -63,7 +66,7 @@ export default function DashboardOverview() {
         if (err instanceof ApiAuthError) {
           clearSession();
         }
-        setError(err instanceof Error ? err.message : "Ошибка загрузки данных");
+        setError(err instanceof Error ? err.message : "Error loading data");
       } finally {
         setLoading(false);
       }
@@ -83,52 +86,50 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">Обзор кабинета</h1>
-        <p className="text-slate-500 font-medium">Добро пожаловать! Вот краткая статистика вашей деятельности.</p>
+        <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
+        <p className="text-slate-500 font-medium">{t("welcome")}</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title="Всего лидов" 
+          title={t("totalLeads")} 
           value={stats?.totalLeads ?? 0} 
           icon={<Users className="h-6 w-6 text-blue-600" />}
-          trend={stats?.newLeads ? `+${stats.newLeads} новых` : "Активных"}
+          trend={stats?.newLeads ? `+${stats.newLeads}` : t("active")}
           color="bg-blue-50"
         />
         <StatCard 
-          title="Проекты" 
+          title={t("projects")} 
           value={stats?.totalProjects ?? 0} 
           icon={<Building2 className="h-6 w-6 text-orange-600" />}
-          trend="В каталоге"
+          trend={t("inCatalog")}
           color="bg-orange-50"
         />
         <StatCard 
-          title="Средний рейтинг" 
+          title={t("avgRating")} 
           value={stats?.avgRating ? stats.avgRating.toFixed(1) : "—"} 
           icon={<Star className="h-6 w-6 text-yellow-500" />}
-          trend={`${stats?.totalFeedbacks ?? 0} отзывов`}
+          trend={`${stats?.totalFeedbacks ?? 0} ${t("reviews")}`}
           color="bg-yellow-50"
         />
         <StatCard 
-          title="Конверсия" 
+          title={t("conversion")} 
           value={stats?.totalLeads ? Math.round(( (stats.totalLeads - stats.newLeads) / stats.totalLeads) * 100) + "%" : "0%"} 
           icon={<TrendingUp className="h-6 w-6 text-emerald-600" />}
-          trend="Обработано"
+          trend={t("processed")}
           color="bg-emerald-50"
         />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Recent Leads */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Clock className="h-5 w-5 text-slate-400" />
-              Последние заявки
+              {t("recentLeads")}
             </h2>
             <Link href="/dashboard/leads" className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1">
-              Все лиды <ArrowUpRight className="h-4 w-4" />
+              {t("allLeads")} <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm">
@@ -136,10 +137,10 @@ export default function DashboardOverview() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest">
                   <tr>
-                    <th className="px-6 py-4">Клиент</th>
-                    <th className="px-6 py-4">Проект</th>
-                    <th className="px-6 py-4">Статус</th>
-                    <th className="px-6 py-4">Дата</th>
+                    <th className="px-6 py-4">{t("client")}</th>
+                    <th className="px-6 py-4">{t("project")}</th>
+                    <th className="px-6 py-4">{t("status")}</th>
+                    <th className="px-6 py-4">{t("date")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -147,7 +148,7 @@ export default function DashboardOverview() {
                     <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900">{lead.name}</div>
-                        <div className="text-xs text-slate-500 font-medium">{lead.phone}</div>
+                        <div className="text-xs text-slate-500 font-medium">{formatPhoneNumber(lead.phone)}</div>
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-700">{lead.project?.name ?? "—"}</td>
                       <td className="px-6 py-4">
@@ -157,18 +158,18 @@ export default function DashboardOverview() {
                             : "bg-emerald-100 text-emerald-700"
                         }`}>
                           {lead.status === "NEW" ? <PhoneCall className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                          {lead.status}
+                          {t(`statusLabel.${lead.status}`)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-500 font-medium">
-                        {new Date(lead.createdAt).toLocaleDateString('ru-RU')}
+                        {new Date(lead.createdAt).toLocaleDateString(locale === "ru" ? 'ru-RU' : 'uz-UZ')}
                       </td>
                     </tr>
                   ))}
                   {recentLeads.length === 0 && (
                     <tr>
                       <td colSpan={4} className="px-6 py-10 text-center text-slate-400 font-medium">
-                        Пока нет новых заявок
+                        {t("noLeads")}
                       </td>
                     </tr>
                   )}
@@ -178,27 +179,29 @@ export default function DashboardOverview() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-900">Быстрые действия</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t("quickActions")}</h2>
           <div className="grid gap-4">
             <QuickActionCard 
-              title="Добавить проект" 
-              desc="Создайте новый ЖК в каталоге" 
+              title={t("addProject")} 
+              desc={t("addProjectDesc")} 
               href="/dashboard/projects"
               color="bg-blue-600"
+              btnText={t("goTo")}
             />
             <QuickActionCard 
-              title="Управление квартирами" 
-              desc="Обновите цены и наличие" 
+              title={t("manageApartments")} 
+              desc={t("manageApartmentsDesc")} 
               href="/dashboard/apartments"
               color="bg-orange-500"
+              btnText={t("goTo")}
             />
             <QuickActionCard 
-              title="Настроить профиль" 
-              desc="Инфо о застройщике" 
+              title={t("setupProfile")} 
+              desc={t("setupProfileDesc")} 
               href="/dashboard/profile"
               color="bg-emerald-600"
+              btnText={t("goTo")}
             />
           </div>
         </div>
@@ -222,13 +225,13 @@ function StatCard({ title, value, icon, trend, color }: any) {
   );
 }
 
-function QuickActionCard({ title, desc, href, color }: any) {
+function QuickActionCard({ title, desc, href, btnText }: any) {
   return (
     <Link href={href} className="group block rounded-3xl border border-slate-100 bg-white p-6 shadow-sm hover:border-transparent hover:shadow-xl transition-all">
       <h3 className={`text-lg font-bold group-hover:text-blue-600 transition-colors`}>{title}</h3>
       <p className="text-sm text-slate-500 font-medium mt-1">{desc}</p>
       <div className="mt-4 flex items-center text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-blue-600 transition-colors">
-        Перейти <ArrowUpRight className="ml-1 h-3 w-3" />
+        {btnText} <ArrowUpRight className="ml-1 h-3 w-3" />
       </div>
     </Link>
   );

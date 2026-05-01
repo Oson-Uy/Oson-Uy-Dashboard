@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession } from "@/lib/api";
 import { 
@@ -15,8 +15,13 @@ import {
   X,
   PlusCircle,
   Building,
-  CreditCard
+  CreditCard,
+  Info
 } from "lucide-react";
+import { Onboarding } from "@/components/dashboard/Onboarding";
+import { AnimatePresence } from "framer-motion";
+import { CiGlobe } from "react-icons/ci";
+import { useTranslations, useLocale } from "next-intl";
 
 const STORAGE_KEY = "oson_uy_developer_name";
 const TOKEN_KEY = "oson_uy_token";
@@ -28,6 +33,9 @@ const getInitialToken = () =>
 export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const t = useTranslations("Dashboard");
+  const locale = useLocale();
+  const router = useRouter();
   const pathname = usePathname();
   const [developerName, setDeveloperName] = useState(getInitialName);
   const [draftName, setDraftName] = useState(getInitialName);
@@ -38,6 +46,30 @@ export default function DashboardLayout({
   const [error, setError] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const toggleLocale = () => {
+    const nextLocale = locale === "ru" ? "uz" : "ru";
+    fetch("/api/locale", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: nextLocale }),
+    }).finally(() => {
+      router.refresh();
+    });
+  };
+
+  useEffect(() => {
+    const hasSeenOnboarding = window.localStorage.getItem("oson_uy_onboarding_seen");
+    if (!hasSeenOnboarding && developerName && token) {
+      setShowOnboarding(true);
+    }
+  }, [developerName, token]);
+
+  const closeOnboarding = () => {
+    setShowOnboarding(false);
+    window.localStorage.setItem("oson_uy_onboarding_seen", "true");
+  };
 
   const saveName = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,12 +126,12 @@ export default function DashboardLayout({
   }, [token]);
 
   const navItems = [
-    { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Лиды", href: "/dashboard/leads", icon: Users },
-    { name: "Проекты", href: "/dashboard/projects", icon: Building2 },
-    { name: "Квартиры", href: "/dashboard/apartments", icon: Home },
-    { name: "Тарифы", href: "/dashboard/subscriptions", icon: CreditCard },
-    { name: "Профиль", href: "/dashboard/profile", icon: UserCircle },
+    { name: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard },
+    { name: t("nav.leads"), href: "/dashboard/leads", icon: Users },
+    { name: t("nav.projects"), href: "/dashboard/projects", icon: Building2 },
+    { name: t("nav.apartments"), href: "/dashboard/apartments", icon: Home },
+    { name: t("nav.subscriptions"), href: "/dashboard/subscriptions", icon: CreditCard },
+    { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle },
   ];
 
   const sidebarClass = `fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 shadow-2xl transition-transform duration-300 transform md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`;
@@ -142,13 +174,30 @@ export default function DashboardLayout({
                 </Link>
               );
             })}
+            <button
+              onClick={() => {
+                setShowOnboarding(true);
+                setIsSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:bg-slate-50 hover:text-[#1E3A8A] transition-all group"
+            >
+              <Info className="h-5 w-5 text-slate-400 group-hover:text-[#1E3A8A]" />
+              {t("nav.onboarding")}
+            </button>
+            <button
+              onClick={toggleLocale}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:bg-slate-50 hover:text-[#3C55BE] transition-all group"
+            >
+              <CiGlobe className="h-5 w-5 text-slate-400 group-hover:text-[#3C55BE]" />
+              {locale === "ru" ? "O'zbekcha" : "Русский"}
+            </button>
           </nav>
 
           {/* Bottom Section */}
           <div className="p-4 border-t border-slate-50">
             <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4">
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Застройщик</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.developer")}</p>
                 <p className="text-sm font-bold text-slate-900 truncate">{developerName || "—"}</p>
               </div>
               <button
@@ -156,7 +205,7 @@ export default function DashboardLayout({
                 className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 hover:border-red-100 transition-all"
               >
                 <LogOut className="h-4 w-4" />
-                Выйти
+                {t("common.logout")}
               </button>
             </div>
           </div>
@@ -204,10 +253,10 @@ export default function DashboardLayout({
                 <Building className="h-32 w-32" />
               </div>
               <h2 className="text-3xl font-black uppercase italic tracking-tight">
-                {isRegister ? "Регистрация" : "Вход в кабинет"}
+                {isRegister ? t("auth.registerTitle") : t("auth.loginTitle")}
               </h2>
               <p className="mt-2 text-blue-100/60 font-bold uppercase text-[10px] tracking-[0.2em]">
-                Oson Uy Developer Dashboard
+                {t("common.title")}
               </p>
             </div>
             
@@ -221,7 +270,7 @@ export default function DashboardLayout({
               <div className="space-y-4">
                 {isRegister && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Название компании</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("auth.company")}</label>
                     <input
                       value={draftName}
                       onChange={(event) => setDraftName(event.target.value)}
@@ -232,7 +281,7 @@ export default function DashboardLayout({
                   </div>
                 )}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Электронная почта</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("auth.email")}</label>
                   <input
                     type="email"
                     value={email}
@@ -243,7 +292,7 @@ export default function DashboardLayout({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Пароль</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("auth.password")}</label>
                   <input
                     type="password"
                     value={password}
@@ -257,23 +306,29 @@ export default function DashboardLayout({
 
               <button
                 type="submit"
-                className="h-16 w-full rounded-2xl bg-[#F97316] text-lg font-black text-white shadow-xl shadow-orange-900/20 transition-all active:scale-[0.98] hover:bg-orange-600 uppercase tracking-wider"
+                className="h-16 w-full rounded-2xl bg-[#F97316] text-white font-black uppercase tracking-widest shadow-xl shadow-orange-900/20 hover:bg-orange-600 transition-all active:scale-[0.98]"
               >
-                {isRegister ? "Создать аккаунт" : "Войти"}
+                {isRegister ? t("auth.registerBtn") : t("auth.loginBtn")}
               </button>
               
               <button
                 type="button"
-                onClick={() => setIsRegister((current) => !current)}
-                className="w-full text-center text-sm font-bold text-[#1E3A8A] hover:underline"
+                onClick={() => {
+                  setIsRegister(!isRegister);
+                  setError(null);
+                }}
+                className="w-full text-center text-xs font-bold text-slate-400 hover:text-[#1E3A8A] transition-colors"
               >
-                {isRegister ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Зарегистрироваться"}
+                {isRegister ? t("auth.toggleLogin") : t("auth.toggleRegister")}
               </button>
             </form>
           </div>
         </div>
       ) : null}
+
+      <AnimatePresence>
+        {showOnboarding && <Onboarding onClose={closeOnboarding} />}
+      </AnimatePresence>
     </div>
   );
 }
-
