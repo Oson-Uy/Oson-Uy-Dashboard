@@ -17,14 +17,27 @@ import {
 import { useTranslations } from "next-intl";
 
 type ProjectOption = { id: number; name: string; developerId: number };
+
+type ProjectFloorAreaOption = {
+  id?: number;
+  areaSqm: number;
+  sortOrder?: number;
+};
+type ProjectFloorLayout = {
+  id?: number;
+  imageUrl: string;
+  title?: string | null;
+  sortOrder?: number;
+};
+
 type ProjectFloor = {
   id: number;
   projectId: number;
   floor: number;
   pricePerM2: number;
-  areaSqm: number;
-  sampleImageUrl?: string | null;
   title?: string | null;
+  areaOptions: ProjectFloorAreaOption[];
+  layouts: ProjectFloorLayout[];
   project?: { id: number; name: string };
 };
 
@@ -32,9 +45,9 @@ type FloorForm = {
   projectId: number;
   floor: string;
   pricePerM2: string;
-  areaSqm: string;
   title: string;
-  sampleImageUrl: string;
+  areaLines: string[];
+  layoutLines: { imageUrl: string; title: string }[];
 };
 
 const adminHeaders = (contentType = true) => ({
@@ -42,32 +55,27 @@ const adminHeaders = (contentType = true) => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
-const defaultForm: FloorForm = {
-  projectId: 0,
+const emptyForm = (projectId: number): FloorForm => ({
+  projectId,
   floor: "1",
   pricePerM2: "",
-  areaSqm: "",
   title: "",
-  sampleImageUrl: "",
-};
+  areaLines: [""],
+  layoutLines: [{ imageUrl: "", title: "" }],
+});
 
 export default function FloorsPage() {
   const t = useTranslations("Dashboard.floors");
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [floors, setFloors] = useState<ProjectFloor[]>([]);
-  const [form, setForm] = useState<FloorForm>(defaultForm);
-  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState<FloorForm>(emptyForm(0));
+  const [uploadingLayoutIdx, setUploadingLayoutIdx] = useState<number | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
-
-  const indicativeTotal =
-    form.pricePerM2 && form.areaSqm && Number(form.areaSqm) > 0
-      ? Math.round(
-          parseMoneyInput(form.pricePerM2) * Number(form.areaSqm),
-        )
-      : null;
 
   const loadData = async () => {
     try {
@@ -83,16 +91,19 @@ export default function FloorsPage() {
         (project) => project.developerId === currentDeveloper.id,
       );
       const ownProjectIds = new Set(ownProjects.map((item) => item.id));
-      const ownFloors = allFloors.filter((item) =>
-        ownProjectIds.has(item.projectId),
-      );
+      const ownFloors = allFloors
+        .filter((item) => ownProjectIds.has(item.projectId))
+        .map((f) => ({
+          ...f,
+          areaOptions: f.areaOptions ?? [],
+          layouts: f.layouts ?? [],
+        }));
 
       setProjects(ownProjects);
       setFloors(ownFloors);
-      setForm((current) => ({
-        ...current,
-        projectId: current.projectId || ownProjects[0]?.id || 0,
-      }));
+      setForm((current) =>
+        emptyForm(current.projectId || ownProjects[0]?.id || 0),
+      );
     } catch (err) {
       if (err instanceof ApiAuthError) {
         clearSession();
@@ -107,29 +118,41 @@ export default function FloorsPage() {
     void loadData();
   }, []);
 
-  const onImagePick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadImageFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch(`${API_URL}/upload/image`, {
+      method: "POST",
+      headers: adminHeaders(false),
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error(`Error uploading image (${response.status})`);
+    }
+    const data = (await response.json()) as { url: string };
+    return data.url;
+  };
+
+  const onLayoutPick = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
-      setUploading(true);
+      setUploadingLayoutIdx(index);
       setError(null);
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch(`${API_URL}/upload/image`, {
-        method: "POST",
-        headers: adminHeaders(false),
-        body: formData,
+      const url = await uploadImageFile(file);
+      setForm((current) => {
+        const layoutLines = [...current.layoutLines];
+        layoutLines[index] = { ...layoutLines[index], imageUrl: url };
+        return { ...current, layoutLines };
       });
-      if (!response.ok) {
-        throw new Error(`Error uploading image (${response.status})`);
-      }
-      const data = (await response.json()) as { url: string };
-      setForm((current) => ({ ...current, sampleImageUrl: data.url }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setUploading(false);
+      setUploadingLayoutIdx(null);
+      event.target.value = "";
     }
   };
 
@@ -138,19 +161,45 @@ export default function FloorsPage() {
     try {
       setSaving(true);
       setError(null);
+
+      const areaOptions = form.areaLines
+        .map((s) => Number(String(s).replace(",", ".")))
+        .filter((n) => n > 0)
+        .map((areaSqm, i) => ({ areaSqm, sortOrder: i }));
+
+      if (!areaOptions.length) {
+        setError(t("form.needOneArea"));
+        setSaving(false);
+        return;
+      }
+
+      const layouts = form.layoutLines
+        .filter((l) => l.imageUrl.trim())
+        .map((l, i) => ({
+          imageUrl: l.imageUrl.trim(),
+          title: l.title.trim() || undefined,
+          sortOrder: i,
+        }));
+
+      const body: Record<string, unknown> = {
+        projectId: form.projectId,
+        floor: Number(form.floor),
+        pricePerM2: parseMoneyInput(form.pricePerM2),
+        title: form.title.trim() || undefined,
+        areaOptions,
+      };
+      if (editingId) {
+        body.layouts = layouts;
+      } else if (layouts.length) {
+        body.layouts = layouts;
+      }
+
       const response = await fetch(
         editingId ? `${API_URL}/floors/${editingId}` : `${API_URL}/floors`,
         {
           method: editingId ? "PATCH" : "POST",
           headers: adminHeaders(),
-          body: JSON.stringify({
-            projectId: form.projectId,
-            floor: Number(form.floor),
-            pricePerM2: parseMoneyInput(form.pricePerM2),
-            areaSqm: Number(form.areaSqm),
-            title: form.title.trim() || undefined,
-            sampleImageUrl: form.sampleImageUrl || undefined,
-          }),
+          body: JSON.stringify(body),
         },
       );
       if (!response.ok) {
@@ -161,10 +210,7 @@ export default function FloorsPage() {
       }
 
       await loadData();
-      setForm((current) => ({
-        ...defaultForm,
-        projectId: current.projectId || projects[0]?.id || 0,
-      }));
+      setForm(emptyForm(form.projectId || projects[0]?.id || 0));
       setEditingId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -187,11 +233,19 @@ export default function FloorsPage() {
       await loadData();
       if (editingId === id) {
         setEditingId(null);
-        setForm((c) => ({ ...defaultForm, projectId: c.projectId }));
+        setForm(emptyForm(projects[0]?.id || 0));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     }
+  };
+
+  const areasLabel = (fl: ProjectFloor) => {
+    const a = (fl.areaOptions ?? [])
+      .map((o) => o.areaSqm)
+      .filter((n) => n > 0);
+    if (!a.length) return "—";
+    return `${a.map((n) => (Number.isInteger(n) ? String(n) : n.toFixed(1))).join(", ")} м²`;
   };
 
   if (loading) {
@@ -269,47 +323,79 @@ export default function FloorsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="ml-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    {t("form.area")}
+                    {t("form.pricePerM2")}
                   </label>
                   <div className="relative">
-                    <Maximize2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <DollarSign className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
-                      type="number"
-                      value={form.areaSqm}
+                      type="text"
+                      value={form.pricePerM2}
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, areaSqm: e.target.value }))
+                        setForm((f) => ({
+                          ...f,
+                          pricePerM2: formatMoneyInput(e.target.value),
+                        }))
                       }
-                      placeholder="72"
+                      placeholder="15 000 000"
                       className="h-14 w-full rounded-2xl border border-slate-100 bg-slate-50 pl-11 pr-4 text-sm font-bold text-black outline-none transition-all focus:border-blue-600 focus:bg-white"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="ml-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  {t("form.pricePerM2")}
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={form.pricePerM2}
-                    onChange={(e) =>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="ml-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {t("form.areas")}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
                       setForm((f) => ({
                         ...f,
-                        pricePerM2: formatMoneyInput(e.target.value),
+                        areaLines: [...f.areaLines, ""],
                       }))
                     }
-                    placeholder="15 000 000"
-                    className="h-14 w-full rounded-2xl border border-slate-100 bg-slate-50 pl-11 pr-4 text-sm font-bold text-black outline-none transition-all focus:border-blue-600 focus:bg-white"
-                  />
+                    className="text-[10px] font-black uppercase text-blue-600"
+                  >
+                    {t("form.addArea")}
+                  </button>
                 </div>
-                {indicativeTotal != null && (
-                  <p className="ml-4 mt-1 text-[10px] font-black uppercase tracking-widest text-blue-600">
-                    ≈ {formatUzs(indicativeTotal)} {t("form.indicativeTotal")}
-                  </p>
-                )}
+                {form.areaLines.map((line, i) => (
+                  <div key={i} className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Maximize2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={line}
+                        onChange={(e) =>
+                          setForm((f) => {
+                            const areaLines = [...f.areaLines];
+                            areaLines[i] = e.target.value;
+                            return { ...f, areaLines };
+                          })
+                        }
+                        placeholder="72"
+                        className="h-12 w-full rounded-2xl border border-slate-100 bg-slate-50 pl-11 pr-4 text-sm font-bold text-black outline-none transition-all focus:border-blue-600 focus:bg-white"
+                      />
+                    </div>
+                    {form.areaLines.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            areaLines: f.areaLines.filter((_, j) => j !== i),
+                          }))
+                        }
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-1.5">
@@ -326,43 +412,103 @@ export default function FloorsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="ml-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  {t("form.samplePhoto")}
-                </label>
-                <div className="group relative cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onImagePick}
-                    className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                  />
-                  <div className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50 transition-all group-hover:bg-slate-100">
-                    {uploading ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                    ) : form.sampleImageUrl ? (
-                      <img
-                        src={form.sampleImageUrl}
-                        className="h-full w-full rounded-2xl object-contain p-2"
-                        alt=""
-                      />
-                    ) : (
-                      <>
-                        <ImageIcon className="h-6 w-6 text-slate-300" />
-                        <span className="text-xs font-bold text-slate-400">
-                          {t("form.uploadClick")}
-                        </span>
-                      </>
-                    )}
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="ml-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {t("form.layouts")}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        layoutLines: [
+                          ...f.layoutLines,
+                          { imageUrl: "", title: "" },
+                        ],
+                      }))
+                    }
+                    className="text-[10px] font-black uppercase text-blue-600"
+                  >
+                    {t("form.addLayout")}
+                  </button>
                 </div>
+                {form.layoutLines.map((line, i) => (
+                  <div
+                    key={i}
+                    className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4"
+                  >
+                    <div className="group relative mb-3 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => void onLayoutPick(e, i)}
+                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                      />
+                      <div className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-white transition-all group-hover:bg-slate-50">
+                        {uploadingLayoutIdx === i ? (
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                        ) : line.imageUrl ? (
+                          <img
+                            src={line.imageUrl}
+                            className="h-full max-h-24 w-full rounded-lg object-contain p-1"
+                            alt=""
+                          />
+                        ) : (
+                          <>
+                            <ImageIcon className="h-6 w-6 text-slate-300" />
+                            <span className="text-xs font-bold text-slate-400">
+                              {t("form.uploadLayout")}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={line.title}
+                      onChange={(e) =>
+                        setForm((f) => {
+                          const layoutLines = [...f.layoutLines];
+                          layoutLines[i] = {
+                            ...layoutLines[i],
+                            title: e.target.value,
+                          };
+                          return { ...f, layoutLines };
+                        })
+                      }
+                      placeholder={t("form.layoutTitlePlaceholder")}
+                      className="h-11 w-full rounded-xl border border-slate-100 bg-white px-4 text-xs font-bold text-black outline-none"
+                    />
+                    {form.layoutLines.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            layoutLines: f.layoutLines.filter((_, j) => j !== i),
+                          }))
+                        }
+                        className="mt-2 text-[10px] font-black uppercase text-red-500"
+                      >
+                        {t("form.removeLayout")}
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             </div>
+
+            {error && (
+              <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-bold text-red-600">
+                {error}
+              </p>
+            )}
 
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
-                disabled={saving || uploading}
+                disabled={saving || uploadingLayoutIdx != null}
                 className="h-16 flex-1 rounded-2xl bg-[#F97316] font-black uppercase tracking-widest text-white shadow-xl shadow-orange-900/10 transition-all hover:bg-orange-600 disabled:bg-slate-100 disabled:text-slate-400"
               >
                 {saving ? t("form.saving") : editingId ? t("form.save") : t("form.addNew")}
@@ -372,10 +518,7 @@ export default function FloorsPage() {
                   type="button"
                   onClick={() => {
                     setEditingId(null);
-                    setForm((c) => ({
-                      ...defaultForm,
-                      projectId: c.projectId || projects[0]?.id || 0,
-                    }));
+                    setForm(emptyForm(projects[0]?.id || 0));
                   }}
                   className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 transition-all hover:bg-slate-200"
                 >
@@ -406,11 +549,11 @@ export default function FloorsPage() {
                   </span>
                 </div>
                 <div className="mb-4 flex items-start justify-between gap-4">
-                  <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50">
-                    {fl.sampleImageUrl ? (
+                  <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                    {fl.layouts?.[0]?.imageUrl ? (
                       <img
-                        src={fl.sampleImageUrl}
-                        className="h-full w-full rounded-2xl object-cover p-1"
+                        src={fl.layouts[0].imageUrl}
+                        className="h-full w-full object-cover"
                         alt=""
                       />
                     ) : (
@@ -422,24 +565,23 @@ export default function FloorsPage() {
                       {fl.project?.name}
                     </h3>
                     <p className="mt-1 text-xs font-black uppercase tracking-tight text-blue-600">
-                      {formatUzs(Math.round(fl.pricePerM2))} / м² · {fl.areaSqm}{" "}
-                      м²
+                      {formatUzs(Math.round(fl.pricePerM2))} / м²
                     </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {t("table.areas")}: {areasLabel(fl)}
+                    </p>
+                    {fl.layouts && fl.layouts.length > 1 ? (
+                      <p className="mt-1 text-[10px] font-bold text-slate-400">
+                        {t("table.layoutCount", { count: fl.layouts.length })}
+                      </p>
+                    ) : null}
                     {fl.title && (
                       <p className="mt-1 text-xs text-slate-500">{fl.title}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-end justify-between border-t border-slate-50 pt-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {t("table.indicative")}
-                    </p>
-                    <p className="mt-1 text-lg font-black leading-none text-[#F97316]">
-                      {formatUzs(Math.round(fl.pricePerM2 * fl.areaSqm))}
-                    </p>
-                  </div>
+                <div className="flex items-end justify-end border-t border-slate-50 pt-4">
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -458,9 +600,21 @@ export default function FloorsPage() {
                           pricePerM2: formatMoneyInput(
                             String(Math.round(fl.pricePerM2)),
                           ),
-                          areaSqm: String(fl.areaSqm),
                           title: fl.title ?? "",
-                          sampleImageUrl: fl.sampleImageUrl ?? "",
+                          areaLines:
+                            fl.areaOptions?.length &&
+                            fl.areaOptions.some((o) => o.areaSqm > 0)
+                              ? fl.areaOptions.map((o) =>
+                                  String(o.areaSqm),
+                                )
+                              : [""],
+                          layoutLines:
+                            fl.layouts?.length > 0
+                              ? fl.layouts.map((l) => ({
+                                  imageUrl: l.imageUrl,
+                                  title: l.title ?? "",
+                                }))
+                              : [{ imageUrl: "", title: "" }],
                         });
                       }}
                       className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 shadow-sm transition-all hover:bg-[#1E3A8A] hover:text-white"

@@ -41,7 +41,6 @@ type Project = {
   qrCodeUrl: string;
   totalFloors: string;
   totalUnits: string;
-  priceFrom: string;
   pricePerM2From: string;
   imageUrl: string;
   videoUrl?: string;
@@ -65,7 +64,6 @@ const defaultForm: ProjectForm = {
   qrCodeUrl: "",
   totalFloors: "",
   totalUnits: "",
-  priceFrom: "",
   pricePerM2From: "",
   imageUrl: "",
   videoUrl: "",
@@ -129,49 +127,13 @@ export default function ProjectsPage() {
           deliveryDate: project.deliveryDate,
           developerId: project.developerId,
           media: project.media,
-          priceFrom: (() => {
-            const aptMin =
-              project.apartments?.length > 0
-                ? Math.min(
-                    ...project.apartments.map((apt: any) => apt.price),
-                  )
-                : null;
-            const floorMin =
-              project.floors?.length > 0
-                ? Math.min(
-                    ...project.floors.map(
-                      (f: any) => f.pricePerM2 * f.areaSqm,
-                    ),
-                  )
-                : null;
-            if (aptMin != null && floorMin != null) {
-              return String(Math.round(Math.min(aptMin, floorMin)));
-            }
-            if (aptMin != null) return String(Math.round(aptMin));
-            if (floorMin != null) return String(Math.round(floorMin));
-            return "";
-          })(),
           pricePerM2From: (() => {
-            const fromApt =
-              project.apartments?.length > 0
-                ? Math.min(
-                    ...project.apartments
-                      .filter((apt: any) => apt.area > 0)
-                      .map((apt: any) => apt.price / apt.area),
-                  )
-                : null;
-            const fromFloor =
-              project.floors?.length > 0
-                ? Math.min(
-                    ...project.floors.map((f: any) => f.pricePerM2),
-                  )
-                : null;
-            if (fromApt != null && fromFloor != null) {
-              return String(Math.round(Math.min(fromApt, fromFloor)));
-            }
-            if (fromApt != null) return String(Math.round(fromApt));
-            if (fromFloor != null) return String(Math.round(fromFloor));
-            return "";
+            if (!project.floors?.length) return "";
+            const vals = project.floors
+              .map((f: any) => f.pricePerM2 || 0)
+              .filter((x: number) => x > 0);
+            if (!vals.length) return "";
+            return String(Math.round(Math.min(...vals)));
           })(),
           plan: project.subscription?.plan,
           subscriptionStatus: project.subscription?.status,
@@ -196,7 +158,6 @@ export default function ProjectsPage() {
       const { 
         id, 
         media, 
-        priceFrom, 
         pricePerM2From, 
         plan, 
         subscriptionStatus, 
@@ -353,7 +314,7 @@ export default function ProjectsPage() {
                 <ProjectInfoItem icon={<Layers className="h-4 w-4" />} label={t("info.floors")} value={`${project.totalFloors} ${t("info.floorSuffix")}`} />
                 <ProjectInfoItem icon={<Home className="h-4 w-4" />} label={t("info.units")} value={`${project.totalUnits} ${t("info.unitSuffix")}`} />
                 <ProjectInfoItem icon={<Calendar className="h-4 w-4" />} label={t("info.delivery")} value={project.deliveryDate} />
-                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label={t("info.from")} value={formatUzs(Number(project.priceFrom))} />
+                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label={t("info.fromPerM2")} value={project.pricePerM2From ? `${formatUzs(Number(project.pricePerM2From))} / м²` : "—"} />
               </div>
 
               <div className="pt-6 border-t border-slate-50 flex items-center justify-between">

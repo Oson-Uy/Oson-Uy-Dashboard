@@ -233,6 +233,7 @@
         "units": "Xonadonlar",
         "delivery": "Topshirish",
         "from": "Dan",
+        "fromPerM2": "m² narxi dan",
         "floorSuffix": "qav.",
         "unitSuffix": "ta"
       },
@@ -261,7 +262,7 @@
     },
     "floors": {
       "title": "Qavatlar",
-      "subtitle": "Har bir qavat uchun: m² narxi, tipik maydon va namuna surat — saytdagi bino ko'rinishi shunga asoslangan.",
+      "subtitle": "Har bir qavat: m² narxi, bir nechta maydon variantlari va bir yoki bir nechta reja rasmlari — saytdagi bino shunday ko'rinadi.",
       "add": "Qavat qo'shish",
       "edit": "Qavatni tahrirlash",
       "list": "To'ldirilgan qavatlar",
@@ -272,18 +273,23 @@
       "form": {
         "selectProject": "Loyihani tanlang",
         "floor": "Qavat raqami",
-        "area": "Maydon (m²)",
+        "areas": "Maydon variantlari (m²)",
+        "addArea": "+ maydon",
+        "needOneArea": "Kamida bitta 0 dan katta maydon kiriting",
         "pricePerM2": "m² narxi (so'm)",
-        "indicativeTotal": "taxminiy kvartira narxi",
         "titleOptional": "Sarlavha (ixtiyoriy)",
-        "samplePhoto": "Namuna surati",
-        "uploadClick": "Yuklash uchun bosing",
+        "layouts": "Rejalar (suratlar)",
+        "addLayout": "+ reja",
+        "uploadLayout": "Reja rasmini yuklash",
+        "layoutTitlePlaceholder": "Reja sarlavhasi (ixtiyoriy)",
+        "removeLayout": "Slotni olib tashlash",
         "saving": "Saqlanmoqda...",
         "save": "Saqlash",
         "addNew": "Qo'shish"
       },
       "table": {
-        "indicative": "Taxminiy"
+        "areas": "Maydonlar",
+        "layoutCount": "Rejalar: {count}"
       }
     },
     "profile": {

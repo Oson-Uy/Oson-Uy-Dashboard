@@ -233,6 +233,7 @@
         "units": "Квартир",
         "delivery": "Сдача",
         "from": "От",
+        "fromPerM2": "Цена от (м²)",
         "floorSuffix": "эт.",
         "unitSuffix": "шт."
       },
@@ -272,18 +273,23 @@
       "form": {
         "selectProject": "Выберите проект",
         "floor": "Номер этажа",
-        "area": "Площадь (м²)",
+        "areas": "Варианты площади (м²)",
+        "addArea": "+ площадь",
+        "needOneArea": "Добавьте хотя бы одну площадь больше 0 м²",
         "pricePerM2": "Цена за м² (сум)",
-        "indicativeTotal": "ориентир за квартиру",
         "titleOptional": "Подпись (необязательно)",
-        "samplePhoto": "Фото образца",
-        "uploadClick": "Нажмите для загрузки",
+        "layouts": "Планировки (изображения)",
+        "addLayout": "+ планировка",
+        "uploadLayout": "Загрузить планировку",
+        "layoutTitlePlaceholder": "Подпись к планировке (необязательно)",
+        "removeLayout": "Удалить слот",
         "saving": "Сохранение...",
         "save": "Сохранить",
         "addNew": "Добавить"
       },
       "table": {
-        "indicative": "Ориентир"
+        "areas": "Площади",
+        "layoutCount": "Планировок: {count}"
       }
     },
     "profile": {
