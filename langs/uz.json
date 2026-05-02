@@ -101,14 +101,14 @@
           "title": "Quruvchi kabinetiga xush kelibsiz",
           "description": "Qisqacha: bitta kabinet — saytdagi loyihalar, kiruvchi arizalar, tariflar va kompaniya profili.",
           "bullets": [
-            "Bu yerda TY va kvartiralarni tahrirlaysiz — xaridorlar OsonUy katalogida shuni ko'radi.",
+            "Bu yerda TY va qavatlarni tahrirlaysiz (m² narxi, maydon, surat) — xaridorlar OsonUy katalogida shuni ko'radi.",
             "Chap menyudan foydalaning: Umumiy, Arizalar, Loyihalar, Qavatlar, Tariflar, Profil.",
             "Hisobdan chiqish — yon panel pastidagi tugma yoki telefonda sarlavhadagi chiqish belgisi."
           ]
         },
         {
-          "title": "Avval loyiha, keyin kvartiralar",
-          "description": "Mantiq oddiy: loyihasiz kvartira bog'lanmaydi; kvartirasiz mijoz aniq lotni tanlay olmaydi.",
+          "title": "Avval loyiha, keyin qavatlar",
+          "description": "Mantiq oddiy: avval TY yarating, keyin qavatlarni to'ldiring. Saytda mijoz binoning «minorasida» qavatni bosadi va ariza qoldiradi — ariza tanlangan qavatga bog'lanadi.",
           "bullets": [
             "«Loyihalar»: TY yarating — nom, manzil, suratlar, tavsif, topshirish muddati.",
             "«Qavatlar»: har bir qavat uchun m² narxi, maydon va namuna surat — saytdagi bino ko'rinishi shunga asoslangan.",
