@@ -215,14 +215,85 @@ export default function LeadsPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <LeadStatCard label={t("stats.all")} value={leadsCount.total} color="text-blue-600" />
         <LeadStatCard label={t("stats.new")} value={leadsCount.new} color="text-orange-600" />
         <LeadStatCard label={t("stats.contacted")} value={leadsCount.contacted} color="text-emerald-600" />
         <LeadStatCard label={t("stats.rating")} value={feedbackStats?.avgRating ? feedbackStats.avgRating.toFixed(1) : "—"} color="text-yellow-500" sub={`/ ${feedbackStats?.totalFeedbacks ?? 0}`} />
       </div>
 
-      <div className="rounded-[2rem] border border-slate-100 bg-white overflow-hidden shadow-sm">
+      <div className="md:hidden space-y-4">
+        {filteredLeads.map((lead) => (
+          <div
+            key={lead.id}
+            className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="font-bold text-slate-900">{lead.name}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                  <PhoneCall className="h-3 w-3 shrink-0" />
+                  {formatPhoneNumber(lead.phone)}
+                </p>
+              </div>
+              <span
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${
+                  lead.status === "NEW"
+                    ? "bg-orange-100 text-orange-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {lead.status === "NEW" ? (
+                  <Mail className="h-3 w-3" />
+                ) : (
+                  <CheckCircle2 className="h-3 w-3" />
+                )}
+                {t(`status.${lead.status}`)}
+              </span>
+            </div>
+            <p className="mt-3 font-medium text-slate-700">{lead.project}</p>
+            <p className="text-[10px] font-bold uppercase tracking-tight text-slate-400">
+              {new Date(lead.createdAt).toLocaleDateString(
+                locale === "ru" ? "ru-RU" : "uz-UZ",
+              )}
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setContacted(lead.id)}
+                disabled={lead.status === "CONTACTED"}
+                className="h-11 w-full rounded-xl bg-slate-900 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {t("btnContact")}
+              </button>
+              <button
+                type="button"
+                onClick={() => createFeedbackLink(lead.id)}
+                disabled={lead.status !== "CONTACTED"}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 text-xs font-black text-blue-700 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Star className="h-3 w-3" /> {t("btnFeedback")}
+              </button>
+              {lead.feedbackUrl && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedLink(lead.feedbackUrl!)}
+                  className="text-center text-[10px] font-black uppercase tracking-tighter text-blue-600 underline"
+                >
+                  {t("showLink")}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {filteredLeads.length === 0 && (
+          <div className="rounded-[2rem] border border-slate-100 bg-white py-16 text-center text-sm font-medium italic text-slate-400">
+            {t("noResults")}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-slate-100">
@@ -275,7 +346,7 @@ export default function LeadsPage() {
                         type="button"
                         onClick={() => createFeedbackLink(lead.id)}
                         disabled={lead.status !== "CONTACTED"}
-                        className="flex items-center gap-2 h-10 rounded-xl bg-blue-50 px-4 text-xs font-black text-blue-700 transition-all hover:bg-blue-100 disabled:opacity-0"
+                        className="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-xs font-black text-blue-700 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Star className="h-3 w-3" /> {t("btnFeedback")}
                       </button>

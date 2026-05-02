@@ -11,9 +11,7 @@ import {
   Home, 
   UserCircle, 
   LogOut, 
-  Menu, 
-  X,
-  PlusCircle,
+  Menu,
   Building,
   CreditCard,
   Info
@@ -140,9 +138,9 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col md:flex-row">
       {/* Sidebar Desktop & Mobile */}
       <aside className={sidebarClass}>
-        <div className="flex flex-col h-full">
+        <div className="flex h-full min-h-0 flex-col">
           {/* Logo Section */}
-          <div className="p-8">
+          <div className="shrink-0 p-8">
             <Link href="/dashboard" className="flex items-center gap-3">
               <div className="bg-[#1E3A8A] p-2.5 rounded-2xl shadow-lg shadow-blue-900/20 text-white">
                 <Building className="h-6 w-6" />
@@ -155,7 +153,7 @@ export default function DashboardLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 space-y-2">
+          <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -194,7 +192,7 @@ export default function DashboardLayout({
           </nav>
 
           {/* Bottom Section */}
-          <div className="p-4 border-t border-slate-50">
+          <div className="shrink-0 border-t border-slate-50 p-4">
             <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.developer")}</p>
@@ -223,23 +221,36 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col md:ml-72 min-h-screen">
         {/* Top Header Mobile */}
-        <header className="md:hidden sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-100 bg-white/80 px-4 py-4 backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
-            <div className="bg-[#1E3A8A] p-1.5 rounded-lg text-white">
+            <div className="rounded-lg bg-[#1E3A8A] p-1.5 text-white">
               <Building className="h-4 w-4" />
             </div>
             <span className="font-black text-[#1E3A8A]">Oson Uy</span>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-xl bg-slate-50 text-slate-600 border border-slate-100"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-red-500 transition-colors hover:bg-red-50"
+              aria-label={t("common.logout")}
+              title={t("common.logout")}
+            >
+              <LogOut className="h-6 w-6" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(true)}
+              className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-slate-600"
+              aria-label="Menu"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </header>
 
         {/* Content Container */}
-        <main className="p-6 md:p-12 w-full max-w-7xl mx-auto">
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 md:p-12">
           {!checkingSession && developerName && token ? children : null}
         </main>
       </div>

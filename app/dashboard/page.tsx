@@ -132,7 +132,52 @@ export default function DashboardOverview() {
               {t("allLeads")} <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm">
+          <div className="md:hidden space-y-3">
+            {recentLeads.map((lead) => (
+              <div
+                key={lead.id}
+                className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-slate-900">{lead.name}</p>
+                    <p className="mt-0.5 text-xs font-medium text-slate-500">
+                      {formatPhoneNumber(lead.phone)}
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${
+                      lead.status === "NEW"
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {lead.status === "NEW" ? (
+                      <PhoneCall className="h-3 w-3" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3" />
+                    )}
+                    {t(`statusLabel.${lead.status}`)}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-medium text-slate-700">
+                  {lead.project?.name ?? "—"}
+                </p>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  {new Date(lead.createdAt).toLocaleDateString(
+                    locale === "ru" ? "ru-RU" : "uz-UZ",
+                  )}
+                </p>
+              </div>
+            ))}
+            {recentLeads.length === 0 && (
+              <div className="rounded-3xl border border-slate-100 bg-white py-10 text-center text-sm text-slate-400">
+                {t("noLeads")}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest">

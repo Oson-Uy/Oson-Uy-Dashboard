@@ -98,24 +98,50 @@
       "finish": "Ishni boshlash",
       "steps": [
         {
-          "title": "OsonUy-ga xush kelibsiz",
-          "description": "Biz ushbu kabinetni ko'chmas mulk ob'ektlaringizni maksimal darajada samarali boshqarishingiz va sifatli arizalar olishingiz uchun yaratdik."
+          "title": "Quruvchi kabinetiga xush kelibsiz",
+          "description": "Qisqacha: bitta kabinet — saytdagi loyihalar, kiruvchi arizalar, tariflar va kompaniya profili.",
+          "bullets": [
+            "Bu yerda TY va kvartiralarni tahrirlaysiz — xaridorlar OsonUy katalogida shuni ko'radi.",
+            "Chap menyudan foydalaning: Umumiy, Arizalar, Loyihalar, Kvartiralar, Tariflar, Profil.",
+            "Hisobdan chiqish — yon panel pastidagi tugma yoki telefonda sarlavhadagi chiqish belgisi."
+          ]
         },
         {
-          "title": "Loyihalaringiz — sizning yuzingiz",
-          "description": "Turar-joy majmualaringizni «Loyihalar» bo'limiga qo'shing. Tavsif qanchalik batafsil va suratlar sifatli bo'lsa, potentsial xaridorlarning ishonchi shunchalik yuqori bo'ladi."
+          "title": "Avval loyiha, keyin kvartiralar",
+          "description": "Mantiq oddiy: loyihasiz kvartira bog'lanmaydi; kvartirasiz mijoz aniq lotni tanlay olmaydi.",
+          "bullets": [
+            "«Loyihalar»: TY yarating — nom, manzil, suratlar, tavsif, topshirish muddati.",
+            "«Kvartiralar»: loyihaga kvartira qo'shing — xonalar, maydon, qavat, narx.",
+            "To'liqroq kartochka va sifatli suratlar — ishonch va arizalar soni uchun muhim."
+          ]
         },
         {
-          "title": "Arizalarni aqlli boshqarish",
-          "description": "Saytdagi barcha so'rovlar «Arizalar» bo'limiga tushadi. Biz sizni yangi arizalar haqida avtomatik ravishda xabardor qilamiz. Konversiyani oshirish uchun ularga o'z vaqtida ishlov bering."
+          "title": "Arizalar: qo'ng'iroq → holat → sharh",
+          "description": "Saytdan barcha arizalar «Arizalar»ga ism va telefon bilan tushadi. Holat va sharh havolasi faqat shu yerda o'zgartiriladi.",
+          "bullets": [
+            "Arizani oching, mijozga ko'rsatilgan raqamga qo'ng'iroq qiling.",
+            "Suhbatdan keyin «Bog'landi» tugmasini bosing — keyingi qadam uchun bu kerak.",
+            "«Sharh» tugmasi havola yaratadi; uni mijozga yuboring (messenger, SMS).",
+            "Holatni yoki havolani qayta o'zgartirish uchun doim shu kabinet, «Arizalar» bo'limiga kiring."
+          ]
         },
         {
-          "title": "Tariflar va Rivojlantirish",
-          "description": "Loyihalaringizni katalogning yuqori qismiga ko'tarish va bizning algoritmlarimiz yordamida 5 baravar ko'p ariza olish uchun Start, Pro va Ultra tariflaridan foydalaning."
+          "title": "Tariflar va katalogda ko'rinish",
+          "description": "«Tariflar»da aniq loyiha uchun reja tanlaysiz: ko'proq media va katalogda yuqori o'rin.",
+          "bullets": [
+            "Loyiha va tarifni tanlang (Start, Pro va boshqalar) — xizmatlar va surat limitlari sahifada yozilgan.",
+            "Obunani rasmiylashtirish va uzaytirish shu bo'limda.",
+            "Faol tarif ko'proq ko'rish va arizalar olishga yordam beradi."
+          ]
         },
         {
-          "title": "Hammasi startga tayyor!",
-          "description": "Kompaniyangiz profilini to'ldirish va birinchi loyihangizni qo'shishdan boshlang. Savollar tug'ilsa — bizning qo'llab-quvvatlash xizmatimiz har doim aloqada."
+          "title": "Profil va bildirishnomalar",
+          "description": "«Profil»da kompaniya ma'lumotlarini tekshiring. Xohlasangiz Telegram ulansangiz — yangi arizalar haqida xabar olish mumkin.",
+          "bullets": [
+            "Profilda quruvchi ma'lumotlari — dolzarblab turish muhim.",
+            "Telegram integratsiyasi yoqilgan bo'lsa, profilda botni bog'lash havolasi bo'ladi: «Start»dan keyin faqat sizning arizalaringiz keladi.",
+            "Keyingi qadamlar: loyihalarni yangilang, mijozlarga tez javob bering, «Arizalar»dan sharh havolasini yuboring."
+          ]
         }
       ]
     },
@@ -279,7 +305,17 @@
         "EXPIRED": "Muddati tugagan",
         "PAST_DUE": "To'lov kutilmoqda",
         "CANCELED": "Bekor qilingan"
-      }
+      },
+      "telegramTitle": "Telegram bildirishnomalari",
+      "telegramDesc": "Ulanganidan keyin bot yangi ariza uchun ism, telefon va obyektni yuboradi. Holatni o'zgartirish va sharh havolasi faqat «Arizalar» bo'limida.",
+      "telegramLinked": "Telegram ulangan. Yangi arizalar bot chatiga keladi.",
+      "telegramGetLink": "Ulash havolasini yaratish",
+      "telegramCopy": "Havoladan nusxa olish",
+      "telegramOpen": "Telegramda ochish",
+      "telegramExpires": "Havola 24 soat amal qiladi. Telegramda oching va «Start» bosing.",
+      "telegramError": "Havola chiqmadi. Serverda TELEGRAM_BOT_USERNAME sozlashi kerak.",
+      "telegramCopied": "Havola buferga nusxalandi.",
+      "telegramRefreshHint": "Telegramda «Start» bosgandan keyin sahifani yangilang — ulanish holati yangilanadi."
     }
   }
 }
