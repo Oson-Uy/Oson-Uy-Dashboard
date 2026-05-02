@@ -129,18 +129,50 @@ export default function ProjectsPage() {
           deliveryDate: project.deliveryDate,
           developerId: project.developerId,
           media: project.media,
-          priceFrom: project.apartments?.length
-            ? String(Math.min(...project.apartments.map((apt: any) => apt.price)))
-            : "",
-          pricePerM2From: project.apartments?.length
-            ? String(
-                Math.min(
-                  ...project.apartments
-                    .filter((apt: any) => apt.area > 0)
-                    .map((apt: any) => apt.price / apt.area),
-                ).toFixed(0),
-              )
-            : "",
+          priceFrom: (() => {
+            const aptMin =
+              project.apartments?.length > 0
+                ? Math.min(
+                    ...project.apartments.map((apt: any) => apt.price),
+                  )
+                : null;
+            const floorMin =
+              project.floors?.length > 0
+                ? Math.min(
+                    ...project.floors.map(
+                      (f: any) => f.pricePerM2 * f.areaSqm,
+                    ),
+                  )
+                : null;
+            if (aptMin != null && floorMin != null) {
+              return String(Math.round(Math.min(aptMin, floorMin)));
+            }
+            if (aptMin != null) return String(Math.round(aptMin));
+            if (floorMin != null) return String(Math.round(floorMin));
+            return "";
+          })(),
+          pricePerM2From: (() => {
+            const fromApt =
+              project.apartments?.length > 0
+                ? Math.min(
+                    ...project.apartments
+                      .filter((apt: any) => apt.area > 0)
+                      .map((apt: any) => apt.price / apt.area),
+                  )
+                : null;
+            const fromFloor =
+              project.floors?.length > 0
+                ? Math.min(
+                    ...project.floors.map((f: any) => f.pricePerM2),
+                  )
+                : null;
+            if (fromApt != null && fromFloor != null) {
+              return String(Math.round(Math.min(fromApt, fromFloor)));
+            }
+            if (fromApt != null) return String(Math.round(fromApt));
+            if (fromFloor != null) return String(Math.round(fromFloor));
+            return "";
+          })(),
           plan: project.subscription?.plan,
           subscriptionStatus: project.subscription?.status,
         })),

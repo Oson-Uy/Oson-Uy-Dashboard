@@ -7,8 +7,8 @@ import { API_URL, ApiAuthError, apiFetch, clearSession } from "@/lib/api";
 import { 
   LayoutDashboard, 
   Users, 
-  Building2, 
-  Home, 
+  Building2,
+  Layers,
   UserCircle, 
   LogOut, 
   Menu,
@@ -127,7 +127,7 @@ export default function DashboardLayout({
     { name: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("nav.leads"), href: "/dashboard/leads", icon: Users },
     { name: t("nav.projects"), href: "/dashboard/projects", icon: Building2 },
-    { name: t("nav.apartments"), href: "/dashboard/apartments", icon: Home },
+    { name: t("nav.floors"), href: "/dashboard/floors", icon: Layers },
     { name: t("nav.subscriptions"), href: "/dashboard/subscriptions", icon: CreditCard },
     { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle },
   ];

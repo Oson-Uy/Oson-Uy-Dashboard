@@ -4,7 +4,7 @@
       "dashboard": "Sharh",
       "leads": "Arizalar",
       "projects": "Loyihalar",
-      "apartments": "Xonadonlar",
+      "floors": "Qavatlar",
       "subscriptions": "Tariflar",
       "profile": "Profil",
       "onboarding": "O'qitish"
@@ -48,8 +48,8 @@
       "quickActions": "Tezkor harakatlar",
       "addProject": "Loyiha qo'shish",
       "addProjectDesc": "Katalogda yangi turar-joy majmuasini yarating",
-      "manageApartments": "Xonadonlarni boshqarish",
-      "manageApartmentsDesc": "Narxlar va mavjudligini yangilang",
+      "manageFloors": "Qavatlar va narxlar",
+      "manageFloorsDesc": "m² narxi, maydon va namuna surat",
       "setupProfile": "Profilni sozlash",
       "setupProfileDesc": "Quruvchi haqida ma'lumot",
       "goTo": "O'tish",
@@ -102,7 +102,7 @@
           "description": "Qisqacha: bitta kabinet — saytdagi loyihalar, kiruvchi arizalar, tariflar va kompaniya profili.",
           "bullets": [
             "Bu yerda TY va kvartiralarni tahrirlaysiz — xaridorlar OsonUy katalogida shuni ko'radi.",
-            "Chap menyudan foydalaning: Umumiy, Arizalar, Loyihalar, Kvartiralar, Tariflar, Profil.",
+            "Chap menyudan foydalaning: Umumiy, Arizalar, Loyihalar, Qavatlar, Tariflar, Profil.",
             "Hisobdan chiqish — yon panel pastidagi tugma yoki telefonda sarlavhadagi chiqish belgisi."
           ]
         },
@@ -111,7 +111,7 @@
           "description": "Mantiq oddiy: loyihasiz kvartira bog'lanmaydi; kvartirasiz mijoz aniq lotni tanlay olmaydi.",
           "bullets": [
             "«Loyihalar»: TY yarating — nom, manzil, suratlar, tavsif, topshirish muddati.",
-            "«Kvartiralar»: loyihaga kvartira qo'shing — xonalar, maydon, qavat, narx.",
+            "«Qavatlar»: har bir qavat uchun m² narxi, maydon va namuna surat — saytdagi bino ko'rinishi shunga asoslangan.",
             "To'liqroq kartochka va sifatli suratlar — ishonch va arizalar soni uchun muhim."
           ]
         },
@@ -259,30 +259,31 @@
         "chooseDistrict": "Tumanni tanlang"
       }
     },
-    "apartments": {
-      "title": "Xonadonlar",
-      "subtitle": "Turar-joy majmualaringizning xonadonlar fondini boshqarish.",
-      "add": "Yangisini qo'shish",
-      "edit": "Tahrirlash",
-      "list": "Xonadonlar ro'yxati",
+    "floors": {
+      "title": "Qavatlar",
+      "subtitle": "Har bir qavat uchun: m² narxi, tipik maydon va namuna surat — saytdagi bino ko'rinishi shunga asoslangan.",
+      "add": "Qavat qo'shish",
+      "edit": "Qavatni tahrirlash",
+      "list": "To'ldirilgan qavatlar",
       "total": "Jami",
-      "noApartments": "Hozircha qo'shilgan xonadonlar yo'q",
+      "empty": "Qavatlar hali qo'shilmagan",
+      "confirmDelete": "Bu qavatni o'chirasizmi?",
+      "floorBadge": "{n}-qavat",
       "form": {
         "selectProject": "Loyihani tanlang",
-        "rooms": "Xonalar",
-        "floor": "Qavat",
+        "floor": "Qavat raqami",
         "area": "Maydon (m²)",
-        "price": "Narx (so'm)",
-        "perM2": " m² uchun",
-        "layout": "Planirovka (surat)",
+        "pricePerM2": "m² narxi (so'm)",
+        "indicativeTotal": "taxminiy kvartira narxi",
+        "titleOptional": "Sarlavha (ixtiyoriy)",
+        "samplePhoto": "Namuna surati",
         "uploadClick": "Yuklash uchun bosing",
         "saving": "Saqlanmoqda...",
         "save": "Saqlash",
         "addNew": "Qo'shish"
       },
       "table": {
-        "roomShort": "xon.",
-        "cost": "Qiymati"
+        "indicative": "Taxminiy"
       }
     },
     "profile": {

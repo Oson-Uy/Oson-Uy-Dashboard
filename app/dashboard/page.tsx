@@ -235,9 +235,9 @@ export default function DashboardOverview() {
               btnText={t("goTo")}
             />
             <QuickActionCard 
-              title={t("manageApartments")} 
-              desc={t("manageApartmentsDesc")} 
-              href="/dashboard/apartments"
+              title={t("manageFloors")} 
+              desc={t("manageFloorsDesc")} 
+              href="/dashboard/floors"
               color="bg-orange-500"
               btnText={t("goTo")}
             />
