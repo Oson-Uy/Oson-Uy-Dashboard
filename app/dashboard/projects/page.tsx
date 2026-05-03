@@ -37,6 +37,18 @@ type Project = {
   district: string;
   description: string;
   advantages: string;
+  materials: string;
+  hasInstallment: boolean;
+  buildingCount: string;
+  corpusCount: string;
+  ceilingHeightM: string;
+  hasSurfaceParking: boolean;
+  hasUndergroundParking: boolean;
+  surfaceParkingSpaces: string;
+  undergroundParkingSpaces: string;
+  elevatorsCount: string;
+  latitude: string;
+  longitude: string;
   mapEmbedUrl: string;
   qrCodeUrl: string;
   totalFloors: string;
@@ -60,6 +72,18 @@ const defaultForm: ProjectForm = {
   district: UZB_LOCATIONS[0].districts[0],
   description: "",
   advantages: "",
+  materials: "",
+  hasInstallment: false,
+  buildingCount: "",
+  corpusCount: "",
+  ceilingHeightM: "",
+  hasSurfaceParking: false,
+  hasUndergroundParking: false,
+  surfaceParkingSpaces: "",
+  undergroundParkingSpaces: "",
+  elevatorsCount: "",
+  latitude: "",
+  longitude: "",
   mapEmbedUrl: "",
   qrCodeUrl: "",
   totalFloors: "",
@@ -118,6 +142,28 @@ export default function ProjectsPage() {
           district: project.district ?? "",
           description: project.description ?? "",
           advantages: (project.advantages ?? []).join(", "),
+          materials: (project.materials ?? []).join(", "),
+          hasInstallment: Boolean(project.hasInstallment),
+          buildingCount:
+            project.buildingCount != null ? String(project.buildingCount) : "",
+          corpusCount:
+            project.corpusCount != null ? String(project.corpusCount) : "",
+          ceilingHeightM:
+            project.ceilingHeightM != null ? String(project.ceilingHeightM) : "",
+          hasSurfaceParking: Boolean(project.hasSurfaceParking),
+          hasUndergroundParking: Boolean(project.hasUndergroundParking),
+          surfaceParkingSpaces:
+            project.surfaceParkingSpaces != null
+              ? String(project.surfaceParkingSpaces)
+              : "",
+          undergroundParkingSpaces:
+            project.undergroundParkingSpaces != null
+              ? String(project.undergroundParkingSpaces)
+              : "",
+          elevatorsCount:
+            project.elevatorsCount != null ? String(project.elevatorsCount) : "",
+          latitude: project.latitude != null ? String(project.latitude) : "",
+          longitude: project.longitude != null ? String(project.longitude) : "",
           mapEmbedUrl: project.mapEmbedUrl ?? "",
           qrCodeUrl: project.qrCodeUrl ?? "",
           totalFloors: project.totalFloors ? String(project.totalFloors) : "",
@@ -164,9 +210,34 @@ export default function ProjectsPage() {
         ...safeForm 
       } = form as any;
 
+      const optInt = (s: string) => {
+        const t = s.trim();
+        if (!t) return undefined;
+        const n = Number(t);
+        return Number.isFinite(n) ? Math.trunc(n) : undefined;
+      };
+      const optFloat = (s: string) => {
+        const t = s.trim();
+        if (!t) return undefined;
+        const n = Number(t);
+        return Number.isFinite(n) ? n : undefined;
+      };
+
       const payload = {
         ...safeForm,
         advantages: form.advantages.split(",").map(i => i.trim()).filter(Boolean),
+        materials: form.materials.split(",").map(i => i.trim()).filter(Boolean),
+        hasInstallment: form.hasInstallment,
+        buildingCount: optInt(form.buildingCount),
+        corpusCount: optInt(form.corpusCount),
+        ceilingHeightM: optFloat(form.ceilingHeightM),
+        hasSurfaceParking: form.hasSurfaceParking,
+        hasUndergroundParking: form.hasUndergroundParking,
+        surfaceParkingSpaces: optInt(form.surfaceParkingSpaces),
+        undergroundParkingSpaces: optInt(form.undergroundParkingSpaces),
+        elevatorsCount: optInt(form.elevatorsCount),
+        latitude: optFloat(form.latitude),
+        longitude: optFloat(form.longitude),
         totalFloors: Number(form.totalFloors) || 0,
         totalUnits: Number(form.totalUnits) || 0,
         mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl),
@@ -408,6 +479,15 @@ export default function ProjectsPage() {
                   className="w-full min-h-[120px] rounded-2xl bg-slate-50 border border-slate-100 p-6 text-sm font-medium outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.advantages")}</label>
+                <textarea
+                  value={form.advantages}
+                  onChange={(e) => setForm((f) => ({ ...f, advantages: e.target.value }))}
+                  placeholder={t("form.advantagesHint")}
+                  className="w-full min-h-[80px] rounded-2xl bg-slate-50 border border-slate-100 p-6 text-sm font-medium outline-none focus:bg-white focus:border-blue-600 transition-all text-black"
+                />
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -453,6 +533,62 @@ export default function ProjectsPage() {
                   </div>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">{t("form.qrDesc")}</p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-100 bg-slate-50/80 p-8 space-y-8">
+            <div>
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">{t("form.specsTitle")}</h3>
+              <p className="text-sm text-slate-500 font-medium mt-1">{t("form.specsSubtitle")}</p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <label className="flex items-center gap-3 cursor-pointer rounded-2xl border border-slate-100 bg-white p-4">
+                <input
+                  type="checkbox"
+                  checked={form.hasInstallment}
+                  onChange={(e) => setForm((f) => ({ ...f, hasInstallment: e.target.checked }))}
+                  className="h-5 w-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                />
+                <span className="text-sm font-bold text-slate-800">{t("form.hasInstallment")}</span>
+              </label>
+              <FormInput label={t("form.materials")} value={form.materials} onChange={(v: string) => setForm(f => ({ ...f, materials: v }))} placeholder={t("form.materialsHint")} />
+              <FormInput label={t("form.buildingCount")} value={form.buildingCount} onChange={(v: string) => setForm(f => ({ ...f, buildingCount: v }))} type="number" />
+              <FormInput label={t("form.corpusCount")} value={form.corpusCount} onChange={(v: string) => setForm(f => ({ ...f, corpusCount: v }))} type="number" />
+              <FormInput label={t("form.ceilingHeightM")} value={form.ceilingHeightM} onChange={(v: string) => setForm(f => ({ ...f, ceilingHeightM: v }))} type="number" />
+              <FormInput label={t("form.elevatorsCount")} value={form.elevatorsCount} onChange={(v: string) => setForm(f => ({ ...f, elevatorsCount: v }))} type="number" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t("form.parkingTitle")}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="flex items-center gap-3 cursor-pointer rounded-2xl border border-slate-100 bg-white p-4">
+                  <input
+                    type="checkbox"
+                    checked={form.hasSurfaceParking}
+                    onChange={(e) => setForm((f) => ({ ...f, hasSurfaceParking: e.target.checked }))}
+                    className="h-5 w-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-sm font-bold text-slate-800">{t("form.hasSurfaceParking")}</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer rounded-2xl border border-slate-100 bg-white p-4">
+                  <input
+                    type="checkbox"
+                    checked={form.hasUndergroundParking}
+                    onChange={(e) => setForm((f) => ({ ...f, hasUndergroundParking: e.target.checked }))}
+                    className="h-5 w-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-sm font-bold text-slate-800">{t("form.hasUndergroundParking")}</span>
+                </label>
+                <FormInput label={t("form.surfaceParkingSpaces")} value={form.surfaceParkingSpaces} onChange={(v: string) => setForm(f => ({ ...f, surfaceParkingSpaces: v }))} type="number" />
+                <FormInput label={t("form.undergroundParkingSpaces")} value={form.undergroundParkingSpaces} onChange={(v: string) => setForm(f => ({ ...f, undergroundParkingSpaces: v }))} type="number" />
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t("form.coordsTitle")}</p>
+              <p className="text-xs text-slate-500 mb-4">{t("form.coordsHint")}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormInput label={t("form.latitude")} value={form.latitude} onChange={(v: string) => setForm(f => ({ ...f, latitude: v }))} placeholder={t("form.latitudePlaceholder")} />
+                <FormInput label={t("form.longitude")} value={form.longitude} onChange={(v: string) => setForm(f => ({ ...f, longitude: v }))} placeholder={t("form.longitudePlaceholder")} />
               </div>
             </div>
           </div>

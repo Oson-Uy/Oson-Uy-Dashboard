@@ -14,7 +14,9 @@ import {
   Menu,
   Building,
   CreditCard,
-  Info
+  Info,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Onboarding } from "@/components/dashboard/Onboarding";
 import { AnimatePresence } from "framer-motion";
@@ -39,6 +41,7 @@ export default function DashboardLayout({
   const [draftName, setDraftName] = useState(getInitialName);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [token, setToken] = useState(getInitialToken);
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -304,14 +307,26 @@ export default function DashboardLayout({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("auth.password")}</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="••••••••"
-                    className="h-14 w-full rounded-2xl bg-slate-50 border border-slate-100 px-6 text-sm font-bold outline-none ring-blue-600/10 focus:ring-4 focus:bg-white focus:border-blue-600 transition-all text-black"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="••••••••"
+                      autoComplete={isRegister ? "new-password" : "current-password"}
+                      className="h-14 w-full rounded-2xl border border-slate-100 bg-slate-50 py-0 pl-6 pr-14 text-sm font-bold text-black outline-none ring-blue-600/10 transition-all focus:border-blue-600 focus:bg-white focus:ring-4"
+                      required
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
