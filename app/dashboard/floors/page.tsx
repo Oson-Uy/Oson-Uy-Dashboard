@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
 import {
@@ -76,6 +76,11 @@ export default function FloorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  const floorsForList = useMemo(() => {
+    if (!form.projectId) return [];
+    return floors.filter((f) => f.projectId === form.projectId);
+  }, [floors, form.projectId]);
 
   const loadData = async () => {
     try {
@@ -533,12 +538,12 @@ export default function FloorsPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-900">{t("list")}</h2>
             <span className="rounded-full bg-slate-50 px-3 py-1 text-[10px] font-black uppercase text-slate-400">
-              {t("total")}: {floors.length}
+              {t("total")}: {floorsForList.length}
             </span>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
-            {floors.map((fl) => (
+            {floorsForList.map((fl) => (
               <div
                 key={fl.id}
                 className="group relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
@@ -626,7 +631,7 @@ export default function FloorsPage() {
               </div>
             ))}
 
-            {floors.length === 0 && (
+            {floorsForList.length === 0 && (
               <div className="col-span-full space-y-4 rounded-[3rem] border-2 border-dashed border-slate-100 py-20 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
                   <Building2 className="h-8 w-8 text-slate-200" />
