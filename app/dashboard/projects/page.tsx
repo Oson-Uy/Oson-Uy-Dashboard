@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   API_URL,
   ApiAuthError,
@@ -25,7 +26,8 @@ import {
   Edit2,
   Loader2,
   DollarSign,
-  Navigation
+  Navigation,
+  ListChecks,
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
 import { useTranslations, useLocale } from "next-intl";
@@ -365,9 +367,19 @@ export default function ProjectsPage() {
                   <h3 className="text-2xl font-black text-white tracking-tight">{project.name}</h3>
                 </div>
                 <div className="flex gap-2">
+                  <Link
+                    href={`/dashboard/progress?projectId=${project.id}`}
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
+                    title={t("progress")}
+                    aria-label={t("progress")}
+                  >
+                    <ListChecks className="h-4 w-4" />
+                  </Link>
                   <button 
                     onClick={() => onEdit(project)}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
+                    type="button"
+                    aria-label={t("edit")}
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>

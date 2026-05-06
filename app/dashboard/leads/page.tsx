@@ -164,7 +164,9 @@ export default function LeadsPage() {
         throw new Error(`Failed to create feedback link (${response.status})`);
       }
       const data = (await response.json()) as { feedbackUrl: string };
-      const finalUrl = data.feedbackUrl.replace("http://localhost:3000", "https://oson-uy-website.vercel.app");
+      const finalUrl = data.feedbackUrl
+        .replace(/^http:\/\/localhost:\d+/, "https://oson-uy.uz")
+        .replace("https://oson-uy-website.vercel.app", "https://oson-uy.uz");
       setLeads((current) =>
         current.map((lead) =>
           lead.id === id ? { ...lead, feedbackUrl: finalUrl } : lead,

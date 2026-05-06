@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, ChevronDown, ChevronUp, Plus, Save, Trash2 } from "lucide-react";
@@ -31,6 +32,8 @@ const emptyRow = (sortOrder: number): Milestone => ({
 export default function ProgressPage() {
   const t = useTranslations("Dashboard.progress");
   const tCommon = useTranslations("Dashboard.common");
+  const searchParams = useSearchParams();
+  const queryProjectId = searchParams.get("projectId");
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<number | null>(null);
@@ -63,8 +66,6 @@ export default function ProgressPage() {
       ]);
       const own = all.filter((p) => p.developerId === dev.id);
       setProjects(own);
-      const initial = own[0]?.id ?? null;
-      setProjectId((cur) => cur ?? initial);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load error");
     } finally {
@@ -86,6 +87,17 @@ export default function ProgressPage() {
   useEffect(() => {
     void loadProjectList();
   }, []);
+
+  useEffect(() => {
+    if (!projects.length) return;
+    const parsed = queryProjectId ? Number(queryProjectId) : NaN;
+    const fromUrl = Number.isFinite(parsed) && projects.some((p) => p.id === parsed) ? parsed : null;
+    setProjectId((cur) => {
+      if (fromUrl != null) return fromUrl;
+      if (cur != null) return cur;
+      return projects[0]?.id ?? null;
+    });
+  }, [projects, queryProjectId]);
 
   useEffect(() => {
     if (!projectId) return;
