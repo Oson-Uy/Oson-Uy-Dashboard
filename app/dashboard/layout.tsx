@@ -15,6 +15,7 @@ import {
   Building,
   CreditCard,
   Info,
+  CheckCircle2,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -130,6 +131,7 @@ export default function DashboardLayout({
     { name: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("nav.leads"), href: "/dashboard/leads", icon: Users },
     { name: t("nav.projects"), href: "/dashboard/projects", icon: Building2 },
+    { name: t("nav.progress"), href: "/dashboard/progress", icon: CheckCircle2 },
     { name: t("nav.floors"), href: "/dashboard/floors", icon: Layers },
     { name: t("nav.subscriptions"), href: "/dashboard/subscriptions", icon: CreditCard },
     { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle },

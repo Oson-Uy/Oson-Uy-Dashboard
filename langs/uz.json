@@ -4,6 +4,7 @@
       "dashboard": "Sharh",
       "leads": "Arizalar",
       "projects": "Loyihalar",
+      "progress": "Progress",
       "floors": "Qavatlar",
       "subscriptions": "Tariflar",
       "profile": "Profil",
@@ -59,6 +60,20 @@
         "NEW": "YANGI",
         "CONTACTED": "ISHLOV BERILGAN"
       }
+    },
+    "progress": {
+      "title": "Qurilish jarayoni",
+      "subtitle": "Nuqtalarni qo‘shing va bajarilgan bosqichlarni belgilang. Foiz avtomatik hisoblanadi va loyiha sahifasida ko‘rsatiladi.",
+      "projectLabel": "Loyiha",
+      "percentLabel": "Progress",
+      "addPoint": "Nuqta qo‘shish",
+      "placeholder": "Masalan: Kotlovan tayyor",
+      "save": "Saqlash",
+      "saving": "Saqlanmoqda…",
+      "loading": "Yuklanmoqda…",
+      "saved": "Saqlandi",
+      "needOne": "Kamida bitta progress nuqtasini qo‘shing",
+      "saveError": "Saqlab bo‘lmadi"
     },
     "leadsPage": {
       "title": "Arizalar",
