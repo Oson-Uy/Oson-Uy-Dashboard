@@ -17,6 +17,9 @@ type Milestone = {
   photoUrls?: string[];
 };
 
+/** Только то, что принимает PATCH /projects/:id/progress (без id — иначе 400 на старом API). */
+type MilestoneSaveBody = Pick<Milestone, "title" | "done" | "sortOrder" | "photoUrls">;
+
 type ProgressPayload = {
   percent: number | null;
   total: number;
@@ -45,13 +48,14 @@ export default function ProgressPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const normalize = (r: Milestone[]) =>
+  const normalize = (r: Milestone[]): MilestoneSaveBody[] =>
     r
       .slice()
       .map((x) => ({ ...x, title: x.title.trim() }))
       .filter((x) => Boolean(x.title))
       .map((x, idx) => ({
-        ...x,
+        title: x.title,
+        done: x.done,
         sortOrder: idx,
         photoUrls: (x.photoUrls ?? [])
           .map((u) => String(u).trim())
