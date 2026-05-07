@@ -67,6 +67,8 @@
       "projectLabel": "Loyiha",
       "percentLabel": "Progress",
       "addPoint": "Nuqta qo‘shish",
+      "addPhoto": "Rasm qo‘shish",
+      "removePhoto": "Rasmni o‘chirish",
       "placeholder": "Masalan: Kotlovan tayyor",
       "save": "Saqlash",
       "saving": "Saqlanmoqda…",

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { API_URL, apiFetch, getToken } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, ChevronDown, ChevronUp, Plus, Save, Trash2 } from "lucide-react";
 
@@ -14,6 +14,7 @@ type Milestone = {
   title: string;
   done: boolean;
   sortOrder: number;
+  photoUrls?: string[];
 };
 
 type ProgressPayload = {
@@ -27,6 +28,7 @@ const emptyRow = (sortOrder: number): Milestone => ({
   title: "",
   done: false,
   sortOrder,
+  photoUrls: [],
 });
 
 export default function ProgressPage() {
@@ -48,7 +50,44 @@ export default function ProgressPage() {
       .slice()
       .map((x) => ({ ...x, title: x.title.trim() }))
       .filter((x) => Boolean(x.title))
-      .map((x, idx) => ({ ...x, sortOrder: idx }));
+      .map((x, idx) => ({
+        ...x,
+        sortOrder: idx,
+        photoUrls: (x.photoUrls ?? [])
+          .map((u) => String(u).trim())
+          .filter(Boolean)
+          .slice(0, 12),
+      }));
+
+  const uploadPhoto = async (idx: number, file: File) => {
+    const token = getToken();
+    if (!token) throw new Error("Unauthorized");
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_URL}/upload/image`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    const data = (await res.json()) as { url?: string };
+    if (!data?.url) throw new Error("Upload failed (no url)");
+    setRows((prev) =>
+      prev.map((m, i) =>
+        i === idx
+          ? { ...m, photoUrls: [...(m.photoUrls ?? []), data.url!].slice(0, 12) }
+          : m,
+      ),
+    );
+  };
+
+  const removePhoto = (idx: number, url: string) => {
+    setRows((prev) =>
+      prev.map((m, i) =>
+        i === idx ? { ...m, photoUrls: (m.photoUrls ?? []).filter((u) => u !== url) } : m,
+      ),
+    );
+  };
 
   const percent = useMemo(() => {
     const total = rows.filter((r) => r.title.trim()).length;
@@ -246,6 +285,41 @@ export default function ProgressPage() {
                 placeholder={t("placeholder")}
                 className="w-full flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-slate-200/60"
               />
+
+              <div className="flex flex-wrap items-center gap-2">
+                {(r.photoUrls ?? []).slice(0, 8).map((url) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => removePhoto(idx, url)}
+                    className="relative h-12 w-16 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                    title={t("removePhoto")}
+                    aria-label={t("removePhoto")}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition" />
+                  </button>
+                ))}
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                  {t("addPhoto")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      e.target.value = "";
+                      try {
+                        await uploadPhoto(idx, f);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : t("saveError"));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
 
               <div className="flex items-center gap-1 justify-end">
                 <button

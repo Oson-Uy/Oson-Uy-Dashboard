@@ -67,6 +67,8 @@
       "projectLabel": "Проект",
       "percentLabel": "Прогресс",
       "addPoint": "Добавить точку",
+      "addPhoto": "Добавить фото",
+      "removePhoto": "Удалить фото",
       "placeholder": "Например: Котлован готов",
       "save": "Сохранить",
       "saving": "Сохранение…",
