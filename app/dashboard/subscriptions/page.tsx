@@ -38,6 +38,9 @@ export default function SubscriptionsPage() {
   const [activePayment, setActivePayment] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [selectedProjectForPlan, setSelectedProjectForPlan] = useState<Record<string, number>>({});
+  const [promoCode, setPromoCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+  const [promoProjectId, setPromoProjectId] = useState<number>(0);
 
   const loadData = React.useCallback(async () => {
     try {
@@ -89,6 +92,34 @@ export default function SubscriptionsPage() {
       setError("Subscription error. Try later.");
     } finally {
       setIsProcessing(null);
+    }
+  };
+
+  const redeemPromo = async (projectId: number) => {
+    const code = promoCode.trim();
+    if (!code) return;
+    if (!projectId) {
+      alert(t("chooseProject"));
+      return;
+    }
+    try {
+      setRedeeming(true);
+      setError(null);
+      const res = await fetch(`${API_URL}/promo/redeem`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ code, projectId }),
+      });
+      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      setPromoCode("");
+      await loadData();
+    } catch (e) {
+      setError("Promo code error");
+    } finally {
+      setRedeeming(false);
     }
   };
 
@@ -171,6 +202,43 @@ export default function SubscriptionsPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Promo code */}
+      <div className="rounded-[2.5rem] border border-slate-100 bg-white p-6 md:p-10 shadow-sm">
+        <h2 className="text-xl md:text-2xl font-black text-[#1E3A8A] uppercase tracking-tight mb-4">{t("promoTitle")}</h2>
+        <p className="text-sm text-slate-500 font-medium mb-6">{t("promoSubtitle")}</p>
+        <div className="flex flex-col md:flex-row gap-3">
+          <select
+            className="h-14 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-slate-200/60 md:w-[320px]"
+            value={promoProjectId || ""}
+            onChange={(e) => setPromoProjectId(Number(e.target.value))}
+          >
+            <option value="" disabled>
+              {t("chooseProject")}
+            </option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <input
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value)}
+            placeholder={t("promoPlaceholder")}
+            className="flex-1 h-14 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-slate-200/60"
+          />
+          <button
+            type="button"
+            disabled={redeeming}
+            onClick={() => redeemPromo(promoProjectId)}
+            className="h-14 rounded-2xl bg-[#1E3A8A] px-6 text-sm font-black text-white shadow-lg shadow-blue-900/20 disabled:opacity-60"
+          >
+            {redeeming ? <Loader2 className="h-5 w-5 animate-spin" /> : t("promoApply")}
+          </button>
+        </div>
+        <p className="mt-3 text-xs text-slate-400 font-semibold">{t("promoHint")}</p>
       </div>
 
       {activePayment && (

@@ -118,7 +118,7 @@
       "steps": [
         {
           "title": "Quruvchi kabinetiga xush kelibsiz",
-          "description": "Qisqacha: bitta kabinet — saytdagi loyihalar, kiruvchi arizalar, tariflar va kompaniya profili.",
+          "description": "Qisqacha: bitta kabinet — saytdagi loyihalar, kiruvchi arizalar, promokod/tariflar va kompaniya profili.",
           "bullets": [
             "Bu yerda TY va qavatlarni tahrirlaysiz (m² narxi, maydon, surat) — xaridorlar OsonUy katalogida shuni ko'radi.",
             "Chap menyudan foydalaning: Umumiy, Arizalar, Loyihalar, Qavatlar, Tariflar, Profil.",
@@ -167,6 +167,11 @@
     "subscriptions": {
       "title": "Tarif rejalari",
       "subtitle": "Loyihalaringizni rivojlantirish va ko'proq ariza olish uchun mos tarifni tanlang.",
+      "promoTitle": "Promokod",
+      "promoSubtitle": "Agar promokodingiz bo'lsa, tanlangan loyiha uchun bepul muddatni faollashtiring.",
+      "promoPlaceholder": "Promokodni kiriting",
+      "promoApply": "Qo'llash",
+      "promoHint": "Promokod obunani uzaytiradi yoki bepul muddatni yoqadi.",
       "current": "Sizning joriy tarifingiz",
       "upgrade": "Tarifni yaxshilash",
       "perMonth": "/oy",
