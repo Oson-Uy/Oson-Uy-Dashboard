@@ -11,6 +11,9 @@ import {
   User,
   CreditCard,
   Layers,
+  LayoutGrid,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { API_URL, apiFetch, getToken } from "@/lib/api";
@@ -20,6 +23,7 @@ type AptStatus = "AVAILABLE" | "RESERVED" | "SOLD";
 
 type Apartment = {
   id: number;
+  sectionKey?: string;
   number: string;
   floor: number;
   rooms: number;
@@ -53,6 +57,62 @@ type ApartmentDetail = Apartment & {
   }>;
 };
 
+type BulkSectionForm = {
+  sectionKey: string;
+  sectionLabel: string;
+  floorFrom: number;
+  floorTo: number;
+  unitsPerFloor: number;
+  rooms: number;
+  areaSqm: number;
+  priceUzs: string;
+  layoutVariantId: string;
+};
+
+function defaultBulkSection(): BulkSectionForm {
+  return {
+    sectionKey: "",
+    sectionLabel: "",
+    floorFrom: 1,
+    floorTo: 9,
+    unitsPerFloor: 4,
+    rooms: 2,
+    areaSqm: 55,
+    priceUzs: "",
+    layoutVariantId: "",
+  };
+}
+
+function countBulkUnits(sections: BulkSectionForm[]): number {
+  let n = 0;
+  for (const sec of sections) {
+    const lo = Math.min(sec.floorFrom, sec.floorTo);
+    const hi = Math.max(sec.floorFrom, sec.floorTo);
+    if (Number.isFinite(lo) && Number.isFinite(hi) && hi >= lo) {
+      n += (hi - lo + 1) * Math.max(1, sec.unitsPerFloor);
+    }
+  }
+  return n;
+}
+
+function previewNumbers(sections: BulkSectionForm[], max = 8): string[] {
+  const out: string[] = [];
+  for (const sec of sections) {
+    const sk = sec.sectionKey.trim();
+    const lo = Math.min(sec.floorFrom, sec.floorTo);
+    const hi = Math.max(sec.floorFrom, sec.floorTo);
+    for (let f = lo; f <= hi && out.length < max; f++) {
+      for (let u = 1; u <= sec.unitsPerFloor && out.length < max; u++) {
+        const num = sk
+          ? `${sk}-${f}-${String(u).padStart(2, "0")}`
+          : `${f}-${String(u).padStart(2, "0")}`;
+        out.push(num);
+      }
+    }
+  }
+  return out;
+}
+
 const statusStyle: Record<AptStatus, string> = {
   AVAILABLE: "bg-emerald-500/90 text-white border-emerald-600",
   RESERVED: "bg-amber-400/95 text-slate-900 border-amber-500",
@@ -70,6 +130,13 @@ export default function ChessboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ApartmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSections, setBulkSections] = useState<BulkSectionForm[]>([
+    defaultBulkSection(),
+  ]);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!projectId || Number.isNaN(projectId)) return;
@@ -93,15 +160,41 @@ export default function ChessboardPage() {
     void load();
   }, [load]);
 
-  const byFloor = useMemo(() => {
-    const m = new Map<number, Apartment[]>();
+  const hasSections = useMemo(
+    () => list.some((a) => (a.sectionKey ?? "").length > 0),
+    [list],
+  );
+
+  const grouped = useMemo(() => {
+    const sectionMap = new Map<string, Apartment[]>();
     for (const a of list) {
-      const f = a.floor;
-      if (!m.has(f)) m.set(f, []);
-      m.get(f)!.push(a);
+      const sk = a.sectionKey ?? "";
+      if (!sectionMap.has(sk)) sectionMap.set(sk, []);
+      sectionMap.get(sk)!.push(a);
     }
-    return [...m.entries()].sort((a, b) => b[0] - a[0]);
+    const entries = [...sectionMap.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0], undefined, { numeric: true }),
+    );
+    return entries.map(([sectionKey, units]) => {
+      const floorMap = new Map<number, Apartment[]>();
+      for (const u of units) {
+        if (!floorMap.has(u.floor)) floorMap.set(u.floor, []);
+        floorMap.get(u.floor)!.push(u);
+      }
+      const floors = [...floorMap.entries()].sort((x, y) => y[0] - x[0]);
+      return { sectionKey, floors };
+    });
   }, [list]);
+
+  const bulkPreviewCount = useMemo(
+    () => countBulkUnits(bulkSections),
+    [bulkSections],
+  );
+
+  const bulkPreviewNums = useMemo(
+    () => previewNumbers(bulkSections),
+    [bulkSections],
+  );
 
   const openDetail = async (apt: Apartment) => {
     setDetailLoading(true);
@@ -136,6 +229,92 @@ export default function ChessboardPage() {
     }
   };
 
+  const updateBulkRow = (
+    index: number,
+    patch: Partial<BulkSectionForm>,
+  ) => {
+    setBulkSections((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const submitBulk = async () => {
+    setBulkError(null);
+    const trimmed = bulkSections.map((s) => ({
+      ...s,
+      sectionKey: s.sectionKey.trim(),
+    }));
+
+    if (trimmed.length > 1) {
+      for (const s of trimmed) {
+        if (!s.sectionKey) {
+          setBulkError(t("bulk.warnMultiKeys"));
+          return;
+        }
+      }
+    }
+
+    if (bulkPreviewCount <= 0 || bulkPreviewCount > 2500) {
+      setBulkError(t("bulk.badCount"));
+      return;
+    }
+
+    setBulkSubmitting(true);
+    try {
+      const body = {
+        sections: trimmed.map((s) => ({
+          sectionKey: s.sectionKey,
+          sectionLabel: s.sectionLabel.trim() || undefined,
+          floorFrom: Number(s.floorFrom),
+          floorTo: Number(s.floorTo),
+          unitsPerFloor: Number(s.unitsPerFloor),
+          rooms: Number(s.rooms),
+          areaSqm: Number(s.areaSqm),
+          ...(s.priceUzs.trim()
+            ? { priceUzs: Number(s.priceUzs.replace(/\s/g, "")) }
+            : {}),
+          ...(s.layoutVariantId.trim()
+            ? { layoutVariantId: Number(s.layoutVariantId) }
+            : {}),
+        })),
+      };
+
+      const res = await fetch(
+        `${API_URL}/projects/${projectId}/apartments/bulk`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify(body),
+        },
+      );
+
+      if (!res.ok) {
+        let msg = t("bulk.error");
+        try {
+          const j = (await res.json()) as {
+            message?: string | string[];
+          };
+          if (typeof j.message === "string") msg = j.message;
+          else if (Array.isArray(j.message)) msg = j.message.join(", ");
+        } catch {
+          /* ignore */
+        }
+        throw new Error(msg);
+      }
+
+      setBulkOpen(false);
+      setBulkSections([defaultBulkSection()]);
+      await load();
+    } catch (e) {
+      setBulkError(e instanceof Error ? e.message : t("bulk.error"));
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
   if (!projectId || Number.isNaN(projectId)) {
     return (
       <div className="p-10 text-slate-500 font-medium">{t("badProject")}</div>
@@ -152,7 +331,7 @@ export default function ChessboardPage() {
 
   return (
     <div className="space-y-8 pb-24 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard/projects"
@@ -170,19 +349,32 @@ export default function ChessboardPage() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs font-bold uppercase tracking-widest">
-          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            {t("legend.free")}
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            {t("legend.reserved")}
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1.5 text-red-800">
-            <span className="h-2 w-2 rounded-full bg-red-500" />
-            {t("legend.sold")}
-          </span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              setBulkError(null);
+              setBulkOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#1E3A8A] px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-blue-900/15 transition hover:bg-[#172554]"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            {t("bulk.open")}
+          </button>
+          <div className="flex flex-wrap gap-3 text-xs font-bold uppercase tracking-widest">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {t("legend.free")}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              {t("legend.reserved")}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1.5 text-red-800">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              {t("legend.sold")}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -192,43 +384,311 @@ export default function ChessboardPage() {
         </div>
       )}
 
-      <div className="space-y-6">
-        {byFloor.length === 0 ? (
+      <div className="space-y-8">
+        {grouped.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center text-slate-500 font-medium">
-            {t("empty")}
+            <p className="mb-4">{t("empty")}</p>
+            <button
+              type="button"
+              onClick={() => setBulkOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#F97316] px-5 py-2.5 text-sm font-black uppercase tracking-widest text-white"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              {t("bulk.open")}
+            </button>
           </div>
         ) : (
-          byFloor.map(([floor, units]) => (
-            <div
-              key={floor}
-              className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm"
-            >
-              <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-400">
-                <Layers className="h-4 w-4" />
-                {t("floor", { n: floor })}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {units.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => void openDetail(a)}
-                    className={`min-w-[5.5rem] rounded-2xl border px-3 py-3 text-left shadow-sm transition hover:scale-[1.02] active:scale-[0.98] ${statusStyle[a.status]}`}
+          grouped.map(({ sectionKey, floors }) => (
+            <div key={sectionKey || "__single__"} className="space-y-4">
+              {hasSections ? (
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                  <Layers className="h-5 w-5 text-[#1E3A8A]" />
+                  <h2 className="text-lg font-black uppercase tracking-tight text-[#1E3A8A]">
+                    {sectionKey
+                      ? t("blockTitle", { code: sectionKey })
+                      : t("blockDefault")}
+                  </h2>
+                </div>
+              ) : null}
+              <div className="space-y-6">
+                {floors.map(([floor, units]) => (
+                  <div
+                    key={`${sectionKey}-${floor}`}
+                    className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm"
                   >
-                    <div className="text-[10px] font-black uppercase opacity-80">
-                      №{a.number}
+                    <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-400">
+                      <Layers className="h-4 w-4" />
+                      {t("floor", { n: floor })}
                     </div>
-                    <div className="text-sm font-black">{a.rooms} {t("rooms")}</div>
-                    <div className="text-[10px] font-bold opacity-90">
-                      {a.areaSqm} м²
+                    <div className="flex flex-wrap gap-2">
+                      {units.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => void openDetail(a)}
+                          className={`min-w-[5.5rem] rounded-2xl border px-3 py-3 text-left shadow-sm transition hover:scale-[1.02] active:scale-[0.98] ${statusStyle[a.status]}`}
+                        >
+                          <div className="text-[10px] font-black uppercase opacity-80">
+                            №{a.number}
+                          </div>
+                          <div className="text-sm font-black">
+                            {a.rooms} {t("rooms")}
+                          </div>
+                          <div className="text-[10px] font-bold opacity-90">
+                            {a.areaSqm} м²
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
           ))
         )}
       </div>
+
+      {bulkOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-6">
+              <div>
+                <h2 className="text-xl font-black text-[#1E3A8A]">
+                  {t("bulk.title")}
+                </h2>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  {t("bulk.hint")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !bulkSubmitting && setBulkOpen(false)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+                aria-label={t("close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
+              {bulkSections.map((row, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-slate-100 bg-slate-50/80 p-5 space-y-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                      {t("bulk.blockHeading", { n: idx + 1 })}
+                    </span>
+                    {bulkSections.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBulkSections((s) =>
+                            s.filter((_, i) => i !== idx),
+                          )
+                        }
+                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        aria-label={t("bulk.removeBlock")}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.sectionKey")}
+                      </span>
+                      <input
+                        value={row.sectionKey}
+                        onChange={(e) =>
+                          updateBulkRow(idx, { sectionKey: e.target.value })
+                        }
+                        placeholder="A"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.sectionLabel")}
+                      </span>
+                      <input
+                        value={row.sectionLabel}
+                        onChange={(e) =>
+                          updateBulkRow(idx, { sectionLabel: e.target.value })
+                        }
+                        placeholder={t("bulk.sectionLabelPh")}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.floorFrom")}
+                      </span>
+                      <input
+                        type="number"
+                        value={row.floorFrom}
+                        onChange={(e) =>
+                          updateBulkRow(idx, {
+                            floorFrom: Number(e.target.value),
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.floorTo")}
+                      </span>
+                      <input
+                        type="number"
+                        value={row.floorTo}
+                        onChange={(e) =>
+                          updateBulkRow(idx, {
+                            floorTo: Number(e.target.value),
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.unitsPerFloor")}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={row.unitsPerFloor}
+                        onChange={(e) =>
+                          updateBulkRow(idx, {
+                            unitsPerFloor: Number(e.target.value),
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.rooms")}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={row.rooms}
+                        onChange={(e) =>
+                          updateBulkRow(idx, { rooms: Number(e.target.value) })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.areaSqm")}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        step={0.1}
+                        value={row.areaSqm}
+                        onChange={(e) =>
+                          updateBulkRow(idx, {
+                            areaSqm: Number(e.target.value),
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.priceUzs")}
+                      </span>
+                      <input
+                        value={row.priceUzs}
+                        onChange={(e) =>
+                          updateBulkRow(idx, { priceUzs: e.target.value })
+                        }
+                        placeholder="—"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400">
+                        {t("bulk.layoutVariantId")}
+                      </span>
+                      <input
+                        value={row.layoutVariantId}
+                        onChange={(e) =>
+                          updateBulkRow(idx, {
+                            layoutVariantId: e.target.value,
+                          })
+                        }
+                        placeholder="—"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setBulkSections((s) => [...s, defaultBulkSection()])
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 py-4 text-sm font-black uppercase tracking-widest text-slate-500 hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+              >
+                <Plus className="h-4 w-4" />
+                {t("bulk.addBlock")}
+              </button>
+
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4">
+                <p className="text-sm font-black text-[#1E3A8A]">
+                  {t("bulk.previewCount", { count: bulkPreviewCount })}
+                </p>
+                <p className="mt-2 text-xs font-medium text-slate-600">
+                  {t("bulk.previewSample")}: {bulkPreviewNums.join(", ")}
+                  {bulkPreviewCount > bulkPreviewNums.length ? "…" : ""}
+                </p>
+              </div>
+
+              {bulkError && (
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-700">
+                  {bulkError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex shrink-0 gap-3 border-t border-slate-100 p-6">
+              <button
+                type="button"
+                onClick={() => !bulkSubmitting && setBulkOpen(false)}
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-black uppercase tracking-widest text-slate-600"
+              >
+                {t("bulk.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={bulkSubmitting || bulkPreviewCount <= 0}
+                onClick={() => void submitBulk()}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-50"
+              >
+                {bulkSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                {t("bulk.submit")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <div className="fixed inset-0 z-[100] flex justify-end bg-slate-950/40 backdrop-blur-sm">
@@ -239,6 +699,9 @@ export default function ChessboardPage() {
                   {t("drawerTitle", { n: selected.number })}
                 </h2>
                 <p className="text-xs font-bold text-slate-400">
+                  {(selected.sectionKey ?? "").length > 0
+                    ? `${t("blockShort", { code: selected.sectionKey ?? "" })} · `
+                    : ""}
                   {t("floor", { n: selected.floor })} · {selected.rooms}{" "}
                   {t("rooms")} · {selected.areaSqm} м²
                 </p>

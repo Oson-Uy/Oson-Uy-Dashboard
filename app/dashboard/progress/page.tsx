@@ -25,10 +25,6 @@ type ProgressPayload = {
   total: number;
   done: number;
   milestones: Milestone[];
-  construction?: {
-    percentComplete: number;
-    stages: Array<{ key: string; done: boolean }>;
-  };
 };
 
 const emptyRow = (sortOrder: number): Milestone => ({
@@ -51,11 +47,6 @@ export default function ProgressPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [constructionPercent, setConstructionPercent] = useState(0);
-  const [constructionStages, setConstructionStages] = useState<
-    Array<{ key: string; done: boolean }>
-  >([]);
-  const [savingConstruction, setSavingConstruction] = useState(false);
 
   const normalize = (r: Milestone[]): MilestoneSaveBody[] =>
     r
@@ -131,13 +122,6 @@ export default function ProgressPage() {
       const data = await apiFetch<ProgressPayload>(`/projects/${pid}/progress`);
       const sorted = (data.milestones ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       setRows(sorted.length ? sorted.map((r, idx) => ({ ...r, sortOrder: idx })) : [emptyRow(0)]);
-      if (data.construction?.stages?.length) {
-        setConstructionPercent(data.construction.percentComplete ?? 0);
-        setConstructionStages(data.construction.stages);
-      } else {
-        setConstructionPercent(0);
-        setConstructionStages([]);
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load error");
     }
@@ -182,35 +166,6 @@ export default function ProgressPage() {
       next.splice(idx, 1);
       return (next.length ? next : [emptyRow(0)]).map((r, i) => ({ ...r, sortOrder: i }));
     });
-
-  const saveConstruction = async () => {
-    if (!projectId) return;
-    setSavingConstruction(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_URL}/projects/${projectId}/building-progress`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({
-          percentComplete: constructionPercent,
-          stages: constructionStages.map((s) => ({
-            stageKey: s.key,
-            done: s.done,
-          })),
-        }),
-      });
-      if (!res.ok) throw new Error(t("saveError"));
-      setNotice(t("constructionSaved"));
-      await loadProgress(projectId);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("saveError"));
-    } finally {
-      setSavingConstruction(false);
-    }
-  };
 
   const save = async () => {
     if (!projectId) return;
@@ -304,59 +259,6 @@ export default function ProgressPage() {
         {notice ? (
           <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-700">
             {notice}
-          </div>
-        ) : null}
-
-        {constructionStages.length > 0 ? (
-          <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50/50 p-6">
-            <h3 className="text-sm font-black uppercase tracking-widest text-[#1E3A8A]">
-              {t("constructionTitle")}
-            </h3>
-            <div className="mt-4">
-              <label className="text-xs font-bold text-slate-600">
-                {t("constructionPercent")}
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={constructionPercent}
-                onChange={(e) => setConstructionPercent(Number(e.target.value))}
-                className="mt-2 w-full accent-[#1E3A8A]"
-              />
-              <div className="text-sm font-black text-slate-900">{constructionPercent}%</div>
-            </div>
-            <div className="mt-4 space-y-2">
-              {constructionStages.map((s, i) => (
-                <label
-                  key={s.key}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl bg-white/80 px-4 py-2 text-sm font-bold text-slate-800"
-                >
-                  <input
-                    type="checkbox"
-                    checked={s.done}
-                    onChange={(e) =>
-                      setConstructionStages((prev) =>
-                        prev.map((x, j) =>
-                          j === i ? { ...x, done: e.target.checked } : x,
-                        ),
-                      )
-                    }
-                    className="h-4 w-4 accent-emerald-600"
-                  />
-                  {s.key.replace(/_/g, " ")}
-                </label>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => void saveConstruction()}
-              disabled={savingConstruction || !projectId}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[#1E3A8A] px-6 py-3 text-sm font-black text-white disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" />
-              {savingConstruction ? t("saving") : t("constructionSave")}
-            </button>
           </div>
         ) : null}
 
