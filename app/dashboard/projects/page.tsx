@@ -28,6 +28,7 @@ import {
   DollarSign,
   Navigation,
   ListChecks,
+  LayoutGrid,
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
 import { useTranslations, useLocale } from "next-intl";
@@ -367,6 +368,14 @@ export default function ProjectsPage() {
                   <h3 className="text-2xl font-black text-white tracking-tight">{project.name}</h3>
                 </div>
                 <div className="flex gap-2">
+                  <Link
+                    href={`/dashboard/projects/${project.id}/chessboard`}
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
+                    title={t("chessboard")}
+                    aria-label={t("chessboard")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Link>
                   <Link
                     href={`/dashboard/progress?projectId=${project.id}`}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"

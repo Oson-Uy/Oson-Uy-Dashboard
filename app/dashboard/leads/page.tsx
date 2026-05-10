@@ -18,7 +18,41 @@ import {
 import { useTranslations, useLocale } from "next-intl";
 import { formatPhoneNumber } from "@/lib/format";
 
-type LeadStatus = "NEW" | "CONTACTED";
+type LeadStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "MEETING"
+  | "RESERVED"
+  | "SOLD"
+  | "CANCELED";
+
+const LEAD_COLUMNS: LeadStatus[] = [
+  "NEW",
+  "CONTACTED",
+  "MEETING",
+  "RESERVED",
+  "SOLD",
+  "CANCELED",
+];
+
+function leadStatusClass(status: LeadStatus) {
+  switch (status) {
+    case "NEW":
+      return "bg-orange-100 text-orange-700";
+    case "CONTACTED":
+      return "bg-blue-100 text-blue-700";
+    case "MEETING":
+      return "bg-violet-100 text-violet-800";
+    case "RESERVED":
+      return "bg-amber-100 text-amber-900";
+    case "SOLD":
+      return "bg-emerald-100 text-emerald-800";
+    case "CANCELED":
+      return "bg-slate-100 text-slate-600";
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+}
 
 type Lead = {
   id: number;
@@ -34,7 +68,7 @@ type ApiLead = {
   id: number;
   name: string;
   phone: string;
-  status: LeadStatus;
+  status: string;
   createdAt: string;
   project: { id: number; name: string; developerId: number } | null;
 };
@@ -86,18 +120,23 @@ export default function LeadsPage() {
         items: FeedbackItem[];
       }>("/leads/feedback/summary");
       setFeedbackStats(feedbackData);
+      const rows = Array.isArray(data)
+        ? data
+        : (data as { items?: ApiLead[] }).items ?? [];
       setLeads(
-        data
+        rows
           .filter((lead) => lead.project?.developerId === currentDeveloper.id)
           .map((lead) => ({
-          id: lead.id,
-          name: lead.name,
-          phone: lead.phone,
-          project: lead.project?.name ?? "—",
-          createdAt: new Date(lead.createdAt).toISOString().slice(0, 10),
-          status: lead.status,
-          feedbackUrl: undefined,
-        })),
+            id: lead.id,
+            name: lead.name,
+            phone: lead.phone,
+            project: lead.project?.name ?? "—",
+            createdAt: new Date(lead.createdAt).toISOString().slice(0, 10),
+            status: (LEAD_COLUMNS.includes(lead.status as LeadStatus)
+              ? lead.status
+              : "NEW") as LeadStatus,
+            feedbackUrl: undefined,
+          })),
       );
     } catch (err) {
       if (err instanceof ApiAuthError) {
@@ -130,12 +169,12 @@ export default function LeadsPage() {
     );
   }, [leads, searchQuery]);
 
-  const setContacted = async (id: number) => {
+  const updateLeadStatus = async (id: number, status: LeadStatus) => {
     try {
       const response = await fetch(`${API_URL}/leads/${id}`, {
         method: "PATCH",
         headers: adminHeaders(),
-        body: JSON.stringify({ status: "CONTACTED" }),
+        body: JSON.stringify({ status }),
       });
 
       if (!response.ok) {
@@ -143,14 +182,14 @@ export default function LeadsPage() {
       }
 
       setLeads((current) =>
-        current.map((lead) =>
-          lead.id === id ? { ...lead, status: "CONTACTED" } : lead,
-        ),
+        current.map((lead) => (lead.id === id ? { ...lead, status } : lead)),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     }
   };
+
+  const setContacted = (id: number) => updateLeadStatus(id, "CONTACTED");
 
   const createFeedbackLink = async (id: number) => {
     try {
@@ -224,6 +263,64 @@ export default function LeadsPage() {
         <LeadStatCard label={t("stats.rating")} value={feedbackStats?.avgRating ? feedbackStats.avgRating.toFixed(1) : "—"} color="text-yellow-500" sub={`/ ${feedbackStats?.totalFeedbacks ?? 0}`} />
       </div>
 
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">{t("kanbanTitle")}</h2>
+          <p className="text-xs font-medium text-slate-500">{t("kanbanHint")}</p>
+        </div>
+        <div className="overflow-x-auto pb-2 -mx-1 px-1">
+          <div className="flex min-w-max gap-3">
+            {LEAD_COLUMNS.map((col) => (
+              <div
+                key={col}
+                className="flex w-64 shrink-0 flex-col rounded-2xl border border-slate-100 bg-slate-50/90 p-3"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = Number(e.dataTransfer.getData("text/plain"));
+                  if (id && !Number.isNaN(id)) {
+                    void updateLeadStatus(id, col);
+                  }
+                }}
+              >
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${leadStatusClass(col)}`}>
+                    {t(`status.${col}`)}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    {filteredLeads.filter((l) => l.status === col).length}
+                  </span>
+                </div>
+                <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto">
+                  {filteredLeads
+                    .filter((l) => l.status === col)
+                    .map((lead) => (
+                      <div
+                        key={lead.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", String(lead.id));
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        className="cursor-grab active:cursor-grabbing rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md"
+                      >
+                        <p className="text-sm font-bold text-slate-900">{lead.name}</p>
+                        <p className="text-[11px] text-slate-500">{lead.project}</p>
+                        <p className="mt-1 text-[10px] font-medium text-slate-400">
+                          {formatPhoneNumber(lead.phone)}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="md:hidden space-y-4">
         {filteredLeads.map((lead) => (
           <div
@@ -239,11 +336,7 @@ export default function LeadsPage() {
                 </p>
               </div>
               <span
-                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${
-                  lead.status === "NEW"
-                    ? "bg-orange-100 text-orange-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${leadStatusClass(lead.status)}`}
               >
                 {lead.status === "NEW" ? (
                   <Mail className="h-3 w-3" />
@@ -323,11 +416,7 @@ export default function LeadsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${
-                      lead.status === "NEW" 
-                        ? "bg-orange-100 text-orange-700" 
-                        : "bg-blue-100 text-blue-700"
-                    }`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase ${leadStatusClass(lead.status)}`}>
                       {lead.status === "NEW" ? <Mail className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                       {t(`status.${lead.status}`)}
                     </span>

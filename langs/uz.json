@@ -58,7 +58,11 @@
       "goTo": "O'tish",
       "statusLabel": {
         "NEW": "YANGI",
-        "CONTACTED": "ISHLOV BERILGAN"
+        "CONTACTED": "BOG'LANILDI",
+        "MEETING": "UCHRASHUV",
+        "RESERVED": "BRON",
+        "SOLD": "SOTILDI",
+        "CANCELED": "BEKOR"
       }
     },
     "progress": {
@@ -75,7 +79,11 @@
       "loading": "Yuklanmoqda…",
       "saved": "Saqlandi",
       "needOne": "Kamida bitta progress nuqtasini qo‘shing",
-      "saveError": "Saqlab bo‘lmadi"
+      "saveError": "Saqlab bo‘lmadi",
+      "constructionTitle": "Qurilish bosqichlari",
+      "constructionPercent": "Umumiy foiz",
+      "constructionSave": "Bosqichlarni saqlash",
+      "constructionSaved": "Bosqichlar saqlandi"
     },
     "leadsPage": {
       "title": "Arizalar",
@@ -106,8 +114,43 @@
       },
       "status": {
         "NEW": "YANGI",
-        "CONTACTED": "BOG'LANILDI"
-      }
+        "CONTACTED": "BOG'LANILDI",
+        "MEETING": "UCHRASHUV",
+        "RESERVED": "BRON",
+        "SOLD": "SOTILDI",
+        "CANCELED": "BEKOR"
+      },
+      "kanbanTitle": "Kanban CRM",
+      "kanbanHint": "Kartochkani boshqa ustunga tortib holatni o'zgartiring."
+    },
+    "chessboard": {
+      "title": "Shaxmatka",
+      "subtitle": "qavatlar bo'yicha kvartiralar",
+      "loadError": "Kvartiralarni yuklab bo'lmadi",
+      "badProject": "Noto'g'ri loyiha",
+      "back": "Loyihalarga",
+      "legend": {
+        "free": "Bo'sh",
+        "reserved": "Bron",
+        "sold": "Sotilgan"
+      },
+      "empty": "Kvartiralar hali qo'shilmagan.",
+      "floor": "{n}-qavat",
+      "rooms": "xona",
+      "drawerTitle": "Kv. {n}",
+      "close": "Yopish",
+      "status": "Holat",
+      "statuses": {
+        "AVAILABLE": "Bo'sh",
+        "RESERVED": "Bron",
+        "SOLD": "Sotilgan"
+      },
+      "price": "Narx",
+      "clients": "Xaridorlar",
+      "payments": "To'lovlar",
+      "noClients": "Xaridorlar biriktirilmagan",
+      "recentLeads": "So'nggi arizalar",
+      "noLeads": "Bu kvartira bo'yicha ariza yo'q"
     },
     "onboarding": {
       "step": "Qadam",
@@ -246,6 +289,7 @@
       "noProjects": "Loyihalar topilmadi. Birinchisini qo'shish vaqti keldi!",
       "newProject": "Yangi loyiha",
       "progress": "Qurilish jarayoni",
+      "chessboard": "Kvartiralar shaxmatkasi",
       "details": "Batafsil",
       "editProject": "Loyihani tahrirlash",
       "addProject": "Yangi loyiha qo'shish",
