@@ -60,24 +60,30 @@ type ApartmentDetail = Apartment & {
 type BulkSectionForm = {
   sectionKey: string;
   sectionLabel: string;
-  floorFrom: number;
-  floorTo: number;
-  unitsPerFloor: number;
-  rooms: number;
-  areaSqm: number;
+  /** Строки — чтобы можно было очистить поле и ввести заново */
+  floorFrom: string;
+  floorTo: string;
+  unitsPerFloor: string;
+  rooms: string;
+  areaSqm: string;
   priceUzs: string;
   layoutVariantId: string;
 };
+
+const bulkInputClass =
+  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/15";
+
+const bulkLabelClass = "text-[10px] font-black uppercase tracking-widest text-slate-700";
 
 function defaultBulkSection(): BulkSectionForm {
   return {
     sectionKey: "",
     sectionLabel: "",
-    floorFrom: 1,
-    floorTo: 9,
-    unitsPerFloor: 4,
-    rooms: 2,
-    areaSqm: 55,
+    floorFrom: "1",
+    floorTo: "9",
+    unitsPerFloor: "4",
+    rooms: "2",
+    areaSqm: "55",
     priceUzs: "",
     layoutVariantId: "",
   };
@@ -86,10 +92,14 @@ function defaultBulkSection(): BulkSectionForm {
 function countBulkUnits(sections: BulkSectionForm[]): number {
   let n = 0;
   for (const sec of sections) {
-    const lo = Math.min(sec.floorFrom, sec.floorTo);
-    const hi = Math.max(sec.floorFrom, sec.floorTo);
-    if (Number.isFinite(lo) && Number.isFinite(hi) && hi >= lo) {
-      n += (hi - lo + 1) * Math.max(1, sec.unitsPerFloor);
+    const a = parseInt(sec.floorFrom.trim(), 10);
+    const b = parseInt(sec.floorTo.trim(), 10);
+    const u = parseInt(sec.unitsPerFloor.trim(), 10);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(u)) continue;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    if (hi >= lo && u >= 1) {
+      n += (hi - lo + 1) * u;
     }
   }
   return n;
@@ -99,10 +109,15 @@ function previewNumbers(sections: BulkSectionForm[], max = 8): string[] {
   const out: string[] = [];
   for (const sec of sections) {
     const sk = sec.sectionKey.trim();
-    const lo = Math.min(sec.floorFrom, sec.floorTo);
-    const hi = Math.max(sec.floorFrom, sec.floorTo);
+    const a = parseInt(sec.floorFrom.trim(), 10);
+    const b = parseInt(sec.floorTo.trim(), 10);
+    const uf = parseInt(sec.unitsPerFloor.trim(), 10);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(uf) || uf < 1)
+      continue;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
     for (let f = lo; f <= hi && out.length < max; f++) {
-      for (let u = 1; u <= sec.unitsPerFloor && out.length < max; u++) {
+      for (let u = 1; u <= uf && out.length < max; u++) {
         const num = sk
           ? `${sk}-${f}-${String(u).padStart(2, "0")}`
           : `${f}-${String(u).padStart(2, "0")}`;
@@ -254,6 +269,38 @@ export default function ChessboardPage() {
       }
     }
 
+    const parsedSections = trimmed.map((s) => {
+      const floorFrom = parseInt(s.floorFrom.trim(), 10);
+      const floorTo = parseInt(s.floorTo.trim(), 10);
+      const unitsPerFloor = parseInt(s.unitsPerFloor.trim(), 10);
+      const rooms = parseInt(s.rooms.trim(), 10);
+      const areaSqm = parseFloat(s.areaSqm.trim().replace(",", "."));
+      return {
+        s,
+        floorFrom,
+        floorTo,
+        unitsPerFloor,
+        rooms,
+        areaSqm,
+      };
+    });
+
+    for (const p of parsedSections) {
+      if (
+        !Number.isFinite(p.floorFrom) ||
+        !Number.isFinite(p.floorTo) ||
+        !Number.isFinite(p.unitsPerFloor) ||
+        p.unitsPerFloor < 1 ||
+        !Number.isFinite(p.rooms) ||
+        p.rooms < 1 ||
+        !Number.isFinite(p.areaSqm) ||
+        p.areaSqm < 1
+      ) {
+        setBulkError(t("bulk.invalidNumbers"));
+        return;
+      }
+    }
+
     if (bulkPreviewCount <= 0 || bulkPreviewCount > 2500) {
       setBulkError(t("bulk.badCount"));
       return;
@@ -262,14 +309,14 @@ export default function ChessboardPage() {
     setBulkSubmitting(true);
     try {
       const body = {
-        sections: trimmed.map((s) => ({
+        sections: parsedSections.map(({ s, ...n }) => ({
           sectionKey: s.sectionKey,
           sectionLabel: s.sectionLabel.trim() || undefined,
-          floorFrom: Number(s.floorFrom),
-          floorTo: Number(s.floorTo),
-          unitsPerFloor: Number(s.unitsPerFloor),
-          rooms: Number(s.rooms),
-          areaSqm: Number(s.areaSqm),
+          floorFrom: n.floorFrom,
+          floorTo: n.floorTo,
+          unitsPerFloor: n.unitsPerFloor,
+          rooms: n.rooms,
+          areaSqm: n.areaSqm,
           ...(s.priceUzs.trim()
             ? { priceUzs: Number(s.priceUzs.replace(/\s/g, "")) }
             : {}),
@@ -456,7 +503,7 @@ export default function ChessboardPage() {
                 <h2 className="text-xl font-black text-[#1E3A8A]">
                   {t("bulk.title")}
                 </h2>
-                <p className="mt-1 text-xs font-medium text-slate-500">
+                <p className="mt-1 text-xs font-medium text-slate-700">
                   {t("bulk.hint")}
                 </p>
               </div>
@@ -477,7 +524,7 @@ export default function ChessboardPage() {
                   className="rounded-2xl border border-slate-100 bg-slate-50/80 p-5 space-y-4"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-800">
                       {t("bulk.blockHeading", { n: idx + 1 })}
                     </span>
                     {bulkSections.length > 1 ? (
@@ -498,7 +545,7 @@ export default function ChessboardPage() {
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.sectionKey")}
                       </span>
                       <input
@@ -507,11 +554,11 @@ export default function ChessboardPage() {
                           updateBulkRow(idx, { sectionKey: e.target.value })
                         }
                         placeholder="A"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                        className={bulkInputClass}
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.sectionLabel")}
                       </span>
                       <input
@@ -520,94 +567,89 @@ export default function ChessboardPage() {
                           updateBulkRow(idx, { sectionLabel: e.target.value })
                         }
                         placeholder={t("bulk.sectionLabelPh")}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                        className={bulkInputClass}
                       />
                     </label>
                   </div>
 
                   <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.floorFrom")}
                       </span>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={row.floorFrom}
                         onChange={(e) =>
-                          updateBulkRow(idx, {
-                            floorFrom: Number(e.target.value),
-                          })
+                          updateBulkRow(idx, { floorFrom: e.target.value })
                         }
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.floorTo")}
                       </span>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={row.floorTo}
                         onChange={(e) =>
-                          updateBulkRow(idx, {
-                            floorTo: Number(e.target.value),
-                          })
+                          updateBulkRow(idx, { floorTo: e.target.value })
                         }
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.unitsPerFloor")}
                       </span>
                       <input
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="numeric"
                         value={row.unitsPerFloor}
                         onChange={(e) =>
                           updateBulkRow(idx, {
-                            unitsPerFloor: Number(e.target.value),
+                            unitsPerFloor: e.target.value,
                           })
                         }
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.rooms")}
                       </span>
                       <input
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="numeric"
                         value={row.rooms}
                         onChange={(e) =>
-                          updateBulkRow(idx, { rooms: Number(e.target.value) })
+                          updateBulkRow(idx, { rooms: e.target.value })
                         }
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-3">
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.areaSqm")}
                       </span>
                       <input
-                        type="number"
-                        min={1}
-                        step={0.1}
+                        type="text"
+                        inputMode="decimal"
                         value={row.areaSqm}
                         onChange={(e) =>
-                          updateBulkRow(idx, {
-                            areaSqm: Number(e.target.value),
-                          })
+                          updateBulkRow(idx, { areaSqm: e.target.value })
                         }
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.priceUzs")}
                       </span>
                       <input
@@ -616,14 +658,16 @@ export default function ChessboardPage() {
                           updateBulkRow(idx, { priceUzs: e.target.value })
                         }
                         placeholder="—"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400">
+                      <span className={bulkLabelClass}>
                         {t("bulk.layoutVariantId")}
                       </span>
                       <input
+                        type="text"
+                        inputMode="numeric"
                         value={row.layoutVariantId}
                         onChange={(e) =>
                           updateBulkRow(idx, {
@@ -631,7 +675,7 @@ export default function ChessboardPage() {
                           })
                         }
                         placeholder="—"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className={bulkInputClass}
                       />
                     </label>
                   </div>
@@ -643,17 +687,17 @@ export default function ChessboardPage() {
                 onClick={() =>
                   setBulkSections((s) => [...s, defaultBulkSection()])
                 }
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 py-4 text-sm font-black uppercase tracking-widest text-slate-500 hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 py-4 text-sm font-black uppercase tracking-widest text-slate-800 hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
               >
                 <Plus className="h-4 w-4" />
                 {t("bulk.addBlock")}
               </button>
 
               <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4">
-                <p className="text-sm font-black text-[#1E3A8A]">
+                <p className="text-sm font-black text-slate-900">
                   {t("bulk.previewCount", { count: bulkPreviewCount })}
                 </p>
-                <p className="mt-2 text-xs font-medium text-slate-600">
+                <p className="mt-2 text-xs font-medium text-slate-800">
                   {t("bulk.previewSample")}: {bulkPreviewNums.join(", ")}
                   {bulkPreviewCount > bulkPreviewNums.length ? "…" : ""}
                 </p>

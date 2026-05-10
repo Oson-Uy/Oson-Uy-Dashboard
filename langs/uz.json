@@ -177,6 +177,7 @@
         "submit": "Yaratish",
         "warnMultiKeys": "Bir nechta blok bo'lsa — har biriga kod kiriting.",
         "badCount": "Oraliq va sonni tekshiring (1–2500).",
+        "invalidNumbers": "Raqamlarni tekshiring: qavatlar, kvartiralar, xonalar, maydon.",
         "error": "Yaratib bo'lmadi"
       }
     },
