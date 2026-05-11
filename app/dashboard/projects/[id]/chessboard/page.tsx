@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Loader2,
   X,
-  Home,
   User,
   CreditCard,
   Layers,
@@ -20,7 +19,12 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { API_URL, apiFetch, getToken } from "@/lib/api";
-import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import {
+  formatMoneyInput,
+  formatUzs,
+  formatUzsPerM2,
+  parseMoneyInput,
+} from "@/lib/currency";
 import { formatPhoneNumber } from "@/lib/format";
 
 type AptStatus = "AVAILABLE" | "RESERVED" | "SOLD";
@@ -139,6 +143,20 @@ const statusStyle: Record<AptStatus, string> = {
   SOLD: "bg-red-500/90 text-white border-red-600",
 };
 
+/** Колонка шахматки: полный sectionKey в БД; «блок|подъезд» для двухрядной шапки. */
+function parseSectionColumn(fullKey: string): { block: string; entrance: string } {
+  const k = fullKey ?? "";
+  if (!k) return { block: "", entrance: "" };
+  const pipe = k.indexOf("|");
+  if (pipe !== -1) {
+    return {
+      block: k.slice(0, pipe).trim(),
+      entrance: k.slice(pipe + 1).trim(),
+    };
+  }
+  return { block: k, entrance: "" };
+}
+
 export default function ChessboardPage() {
   const params = useParams();
   const projectId = Number(params.id);
@@ -252,13 +270,40 @@ export default function ChessboardPage() {
     return [...set].sort((a, b) => a - b);
   }, [list]);
 
-  const matrixSections = useMemo(() => {
+  const matrixColumns = useMemo(() => {
     const set = new Set<string>();
     for (const a of filteredList) set.add(a.sectionKey ?? "");
-    return [...set].sort((a, b) =>
+    const keys = [...set].sort((a, b) =>
       a.localeCompare(b, undefined, { numeric: true }),
     );
+    const cols = keys.map((fullKey) => ({
+      fullKey,
+      ...parseSectionColumn(fullKey),
+    }));
+    cols.sort((a, b) => {
+      const ab = (a.block || "\uffff").localeCompare(b.block || "\uffff", undefined, {
+        numeric: true,
+      });
+      if (ab !== 0) return ab;
+      const ae = (a.entrance || "").localeCompare(b.entrance || "", undefined, {
+        numeric: true,
+      });
+      if (ae !== 0) return ae;
+      return a.fullKey.localeCompare(b.fullKey, undefined, { numeric: true });
+    });
+    return cols;
   }, [filteredList]);
+
+  const blockHeaderGroups = useMemo(() => {
+    const groups: { block: string; count: number }[] = [];
+    for (const col of matrixColumns) {
+      const b = col.block;
+      const last = groups[groups.length - 1];
+      if (last && last.block === b) last.count += 1;
+      else groups.push({ block: b, count: 1 });
+    }
+    return groups;
+  }, [matrixColumns]);
 
   const matrixFloors = useMemo(() => {
     const set = new Set<number>();
@@ -750,20 +795,41 @@ export default function ChessboardPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-[2rem] border-2 border-slate-200 bg-white shadow-sm">
-            <table className="min-w-[720px] w-full border-collapse text-sm">
+            <table
+              className="w-full border-collapse text-sm"
+              style={{
+                minWidth: `${48 + Math.max(matrixColumns.length, 1) * 44}px`,
+              }}
+            >
               <thead>
                 <tr className="bg-slate-100">
-                  <th className="sticky left-0 z-10 border border-slate-200 bg-slate-100 px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-600">
-                    <Layers className="mb-1 inline h-4 w-4" />
+                  <th
+                    rowSpan={2}
+                    className="sticky left-0 z-20 w-12 min-w-12 border border-slate-200 bg-slate-100 px-1 py-2 text-center text-[9px] font-black uppercase leading-tight text-slate-500"
+                  >
+                    <Layers className="mx-auto mb-0.5 h-3.5 w-3.5" />
                   </th>
-                  {matrixSections.map((sk) => (
+                  {blockHeaderGroups.map((g, gi) => (
                     <th
-                      key={sk || "__root__"}
-                      className="min-w-[7.5rem] border border-slate-200 px-2 py-3 text-center text-[10px] font-black uppercase tracking-tight text-[#1E3A8A]"
+                      key={`blk-${gi}-${g.block || "__"}`}
+                      colSpan={g.count}
+                      className="border border-slate-200 px-1 py-1.5 text-center text-[10px] font-black uppercase tracking-tight text-[#1E3A8A]"
                     >
-                      {sk
-                        ? t("blockTitle", { code: sk })
+                      {g.block
+                        ? t("blockTitle", { code: g.block })
                         : t("blockDefault")}
+                    </th>
+                  ))}
+                </tr>
+                <tr className="bg-slate-50">
+                  {matrixColumns.map((col) => (
+                    <th
+                      key={col.fullKey || "__root__"}
+                      className="min-w-[44px] max-w-[52px] border border-slate-200 px-0.5 py-1 text-center text-[8px] font-black uppercase leading-tight text-slate-600"
+                    >
+                      {col.entrance
+                        ? t("entranceCol", { n: col.entrance })
+                        : t("entranceDash")}
                     </th>
                   ))}
                 </tr>
@@ -771,40 +837,39 @@ export default function ChessboardPage() {
               <tbody>
                 {matrixFloors.map((floor) => (
                   <tr key={floor}>
-                    <td className="sticky left-0 z-10 whitespace-nowrap border border-slate-200 bg-slate-50/90 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-600 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]">
-                      {t("floor", { n: floor })}
+                    <td className="sticky left-0 z-10 w-12 min-w-12 border border-slate-200 bg-slate-50 px-1 py-1 text-center text-[11px] font-black text-slate-700 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]">
+                      {floor}
                     </td>
-                    {matrixSections.map((sk) => {
-                      const units = cellUnits(floor, sk);
+                    {matrixColumns.map((col) => {
+                      const units = cellUnits(floor, col.fullKey);
                       return (
                         <td
-                          key={`${floor}-${sk || ""}`}
-                          className="align-top border border-slate-200 bg-white p-1.5"
+                          key={`${floor}-${col.fullKey || ""}`}
+                          className="align-middle border border-slate-200 bg-white p-0.5"
                         >
-                          <div className="flex min-h-14 flex-col gap-1">
-                            {units.map((a) => (
-                              <button
-                                key={a.id}
-                                type="button"
-                                onClick={() => void openDetail(a)}
-                                className={`w-full min-w-[4.5rem] rounded-lg border-2 px-1.5 py-1.5 text-left shadow-sm transition hover:z-10 hover:ring-2 hover:ring-[#1E3A8A]/25 ${statusStyle[a.status]}`}
-                              >
-                                <div className="text-[9px] font-black uppercase opacity-90">
-                                  №{a.number}
-                                </div>
-                                <div className="text-[11px] font-black leading-tight">
-                                  {a.rooms} {t("rooms")}
-                                </div>
-                                <div className="text-[9px] font-bold opacity-95">
-                                  {a.areaSqm} м²
-                                </div>
-                                {a.priceUzs != null ? (
-                                  <div className="mt-0.5 text-[9px] font-bold opacity-95">
-                                    {formatMoneyInput(String(a.priceUzs))} сум
-                                  </div>
-                                ) : null}
-                              </button>
-                            ))}
+                          <div className="flex max-w-[52px] flex-wrap justify-center gap-0.5 py-0.5">
+                            {units.map((a) => {
+                              const tipPrice =
+                                a.priceUzs != null
+                                  ? formatMoneyInput(String(a.priceUzs)) + " сум"
+                                  : "—";
+                              return (
+                                <button
+                                  key={a.id}
+                                  type="button"
+                                  onClick={() => void openDetail(a)}
+                                  title={t("unitTooltip", {
+                                    n: a.number,
+                                    rooms: a.rooms,
+                                    area: a.areaSqm,
+                                    price: tipPrice,
+                                  })}
+                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded border text-[9px] font-black leading-none shadow-sm transition hover:z-10 hover:ring-2 hover:ring-[#1E3A8A]/30 ${statusStyle[a.status]}`}
+                                >
+                                  {a.number}
+                                </button>
+                              );
+                            })}
                           </div>
                         </td>
                       );
@@ -1067,11 +1132,17 @@ export default function ChessboardPage() {
                   {t("drawerTitle", { n: selected.number })}
                 </h2>
                 <p className="text-xs font-bold text-slate-400">
-                  {(selected.sectionKey ?? "").length > 0
-                    ? `${t("blockShort", { code: selected.sectionKey ?? "" })} · `
-                    : ""}
-                  {t("floor", { n: selected.floor })} · {selected.rooms}{" "}
-                  {t("rooms")} · {selected.areaSqm} м²
+                  {(() => {
+                    const s = parseSectionColumn(selected.sectionKey ?? "");
+                    const parts: string[] = [];
+                    if (s.block) parts.push(t("blockShort", { code: s.block }));
+                    if (s.entrance)
+                      parts.push(t("entranceCol", { n: s.entrance }));
+                    parts.push(
+                      `${t("floor", { n: selected.floor })} · ${selected.rooms} ${t("rooms")} · ${selected.areaSqm} м²`,
+                    );
+                    return parts.join(" · ");
+                  })()}
                 </p>
               </div>
               <button
@@ -1091,6 +1162,121 @@ export default function ChessboardPage() {
                 </div>
               ) : (
                 <>
+                  {(() => {
+                    const sec = parseSectionColumn(selected.sectionKey ?? "");
+                    const priceM2 =
+                      selected.priceUzs != null &&
+                      selected.areaSqm > 0 &&
+                      Number.isFinite(selected.areaSqm)
+                        ? selected.priceUzs / selected.areaSqm
+                        : null;
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full border-2 px-3 py-1 text-[10px] font-black uppercase tracking-wider ${statusStyle[selected.status]}`}
+                          >
+                            {t(`statuses.${selected.status}`)}
+                          </span>
+                        </div>
+                        {selected.priceUzs != null ? (
+                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                              {t("priceHighlight")}
+                            </p>
+                            <p className="text-xl font-black text-emerald-950">
+                              {formatUzs(selected.priceUzs)}
+                            </p>
+                            {priceM2 != null && Number.isFinite(priceM2) ? (
+                              <p className="mt-1 text-xs font-bold text-emerald-800">
+                                {formatUzsPerM2(priceM2)}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <div>
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            {t("infoTableTitle")}
+                          </p>
+                          <table className="w-full text-xs">
+                            <tbody className="divide-y divide-slate-100">
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoBuilding")}
+                                </td>
+                                <td className="py-1.5 text-right font-black text-slate-900">
+                                  {sec.block || t("blockDefault")}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoEntrance")}
+                                </td>
+                                <td className="py-1.5 text-right font-black text-slate-900">
+                                  {sec.entrance
+                                    ? t("entranceCol", { n: sec.entrance })
+                                    : t("entranceDash")}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoFloor")}
+                                </td>
+                                <td className="py-1.5 text-right font-black">
+                                  {selected.floor}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoNumber")}
+                                </td>
+                                <td className="py-1.5 text-right font-black">
+                                  {selected.number}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoRooms")}
+                                </td>
+                                <td className="py-1.5 text-right font-black">
+                                  {selected.rooms}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoArea")}
+                                </td>
+                                <td className="py-1.5 text-right font-black">
+                                  {selected.areaSqm} м²
+                                </td>
+                              </tr>
+                              {selected.priceUzs != null ? (
+                                <tr>
+                                  <td className="py-1.5 font-bold text-slate-500">
+                                    {t("infoPriceTotal")}
+                                  </td>
+                                  <td className="py-1.5 text-right font-black">
+                                    {formatUzs(selected.priceUzs)}
+                                  </td>
+                                </tr>
+                              ) : null}
+                              {priceM2 != null && Number.isFinite(priceM2) ? (
+                                <tr>
+                                  <td className="py-1.5 font-bold text-slate-500">
+                                    {t("infoPriceM2")}
+                                  </td>
+                                  <td className="py-1.5 text-right font-black">
+                                    {formatUzsPerM2(priceM2)}
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {(selected.layoutImageUrl || selected.model3dUrl) && (
                     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
                       <div className="flex border-b border-slate-100 bg-white">
@@ -1291,17 +1477,6 @@ export default function ChessboardPage() {
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
-                      <Home className="h-3 w-3" /> {t("price")}
-                    </p>
-                    <p className="text-lg font-black text-slate-900">
-                      {selected.priceUzs != null
-                        ? formatUzs(selected.priceUzs)
-                        : "—"}
-                    </p>
                   </div>
 
                   <div>

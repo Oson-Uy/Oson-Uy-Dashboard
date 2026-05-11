@@ -160,7 +160,7 @@
       "bulk": {
         "open": "Ommaviy qo'shish",
         "title": "Bloklar bo'yicha kvartiralar",
-        "hint": "Bitta bino uchun blok kodini bo'sh qoldirish mumkin. Bir nechta blok — har birida kod (A, B, …). Raqamlar: A-3-01.",
+        "hint": "Bitta bino uchun blok kodini bo'sh qoldirish mumkin. Bir nechta blok — har birida kod (A, B, …). Raqamlar: A-3-01. Shaxmatka ustunlarida «blok + kirish eshigi» uchun «BlokKodi|Kirish» formatidan foydalaning, masalan 4-Blok|1.",
         "blockHeading": "{n}-blok",
         "sectionKey": "Blok kodi",
         "sectionLabel": "Sarlavha (ixt.)",
@@ -196,7 +196,7 @@
         "floorFrom": "Qavat dan",
         "floorTo": "gacha",
         "reset": "Tozalash",
-        "matrixHint": "Qatorlar — qavatlar, ustunlar — bloklar",
+        "matrixHint": "Qatorlar — qavatlar, ustunlar — bloklar (kirish eshigi | bilan)",
         "noMatch": "Filtr bo‘yicha kvartira yo‘q — filtrlarni o‘zgartiring yoki tozalang."
       },
       "floorLabel": "Qavat",
@@ -212,7 +212,20 @@
       "layoutUrl": "Reja havolasi",
       "modelUrl": "3D havola",
       "number": "Raqam",
-      "areaSqm": "Maydon m²"
+      "areaSqm": "Maydon m²",
+      "entranceCol": "{n}-kirish",
+      "entranceDash": "—",
+      "unitTooltip": "№{n} · {rooms} xona · {area} m² · {price}",
+      "infoTableTitle": "Kvartira haqida",
+      "infoBuilding": "Bino / blok",
+      "infoEntrance": "Kirish eshigi",
+      "infoFloor": "Qavat",
+      "infoNumber": "Kvartira raqami",
+      "infoRooms": "Xonalar",
+      "infoArea": "Maydon",
+      "infoPriceTotal": "Narx",
+      "infoPriceM2": "m² narxi",
+      "priceHighlight": "Qiymat"
     },
     "customers": {
       "title": "Xaridorlar",

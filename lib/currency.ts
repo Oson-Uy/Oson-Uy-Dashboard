@@ -8,3 +8,6 @@ export const parseMoneyInput = (masked: string) =>
 
 export const formatUzs = (value: number) =>
   `${Math.round(value).toLocaleString("ru-RU")} сум`;
+
+export const formatUzsPerM2 = (value: number) =>
+  `${Math.round(value).toLocaleString("ru-RU")} сум/м²`;

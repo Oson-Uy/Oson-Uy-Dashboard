@@ -247,22 +247,22 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="mx-auto w-full max-w-[1600px] space-y-8 px-4 animate-in fade-in duration-500 sm:px-6 lg:px-8">
+      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div className="space-y-2">
           <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
-          <p className="text-slate-500 font-medium text-sm">{t("subtitle")}</p>
+          <p className="text-sm font-medium text-slate-500">{t("subtitle")}</p>
         </div>
         
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full md:w-auto md:max-w-3xl">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-stretch md:w-auto md:max-w-3xl md:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
               placeholder={t("search")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 pl-11 pr-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all w-full"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5"
             />
           </div>
           <select
@@ -271,7 +271,7 @@ export default function LeadsPage() {
               const v = e.target.value;
               setProjectFilter(v === "" ? "all" : Number(v));
             }}
-            className="h-12 shrink-0 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-widest text-slate-800 outline-none focus:ring-4 focus:ring-blue-600/10 md:min-w-[200px]"
+            className="min-h-[48px] w-full shrink-0 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-800 outline-none focus:ring-4 focus:ring-blue-600/10 sm:w-auto md:min-w-[220px]"
             aria-label={t("projectFilter")}
           >
             <option value="">{t("projectFilterAll")}</option>
@@ -302,12 +302,12 @@ export default function LeadsPage() {
           <h2 className="text-lg font-black text-slate-900">{t("kanbanTitle")}</h2>
           <p className="text-xs font-medium text-slate-500">{t("kanbanHint")}</p>
         </div>
-        <div className="overflow-x-auto pb-2 -mx-1 px-1">
-          <div className="flex min-w-max gap-3">
+        <div className="overflow-x-auto pb-3">
+          <div className="flex min-w-max gap-4 sm:gap-5">
             {LEAD_COLUMNS.map((col) => (
               <div
                 key={col}
-                className="flex w-64 shrink-0 flex-col rounded-2xl border border-slate-100 bg-slate-50/90 p-3"
+                className="flex w-64 shrink-0 flex-col rounded-2xl border border-slate-100 bg-slate-50/90 p-4"
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
@@ -320,7 +320,7 @@ export default function LeadsPage() {
                   }
                 }}
               >
-                <div className="mb-2 flex items-center justify-between px-1">
+                <div className="mb-3 flex items-center justify-between px-0.5">
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${leadStatusClass(col)}`}>
                     {t(`status.${col}`)}
                   </span>
@@ -328,7 +328,7 @@ export default function LeadsPage() {
                     {filteredLeads.filter((l) => l.status === col).length}
                   </span>
                 </div>
-                <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto">
+                <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto">
                   {filteredLeads
                     .filter((l) => l.status === col)
                     .map((lead) => (
@@ -339,7 +339,7 @@ export default function LeadsPage() {
                           e.dataTransfer.setData("text/plain", String(lead.id));
                           e.dataTransfer.effectAllowed = "move";
                         }}
-                        className="cursor-grab active:cursor-grabbing rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md"
+                        className="cursor-grab rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md active:cursor-grabbing"
                       >
                         <p className="text-sm font-bold text-slate-900">{lead.name}</p>
                         <p className="text-[11px] text-slate-500">{lead.project}</p>

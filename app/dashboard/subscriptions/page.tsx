@@ -13,20 +13,20 @@ const PLANS_CONFIG = [
     id: "START",
     icon: <Zap className="h-6 w-6 text-blue-500" />,
     color: "blue",
-    price: 1000000,
+    price: 0,
   },
   {
     id: "PRO",
     icon: <ShieldCheck className="h-6 w-6 text-orange-500" />,
     color: "orange",
     isPopular: true,
-    price: 3000000,
+    price: 0,
   },
   {
     id: "ULTIMATE",
     icon: <Star className="h-6 w-6 text-yellow-500" />,
     color: "yellow",
-    price: 5000000,
+    price: 0,
   }
 ];
 
