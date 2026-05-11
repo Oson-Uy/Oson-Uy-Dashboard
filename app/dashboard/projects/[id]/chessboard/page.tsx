@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { API_URL, apiFetch, getToken } from "@/lib/api";
-import { formatUzs } from "@/lib/currency";
+import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import { formatPhoneNumber } from "@/lib/format";
 
 type AptStatus = "AVAILABLE" | "RESERVED" | "SOLD";
 
@@ -335,7 +336,11 @@ export default function ChessboardPage() {
     setEditFloor(String(selected.floor));
     setEditRooms(String(selected.rooms));
     setEditArea(String(selected.areaSqm));
-    setEditPrice(selected.priceUzs != null ? String(selected.priceUzs) : "");
+    setEditPrice(
+      selected.priceUzs != null
+        ? formatMoneyInput(String(selected.priceUzs))
+        : "",
+    );
     setEditLayoutUrl(selected.layoutImageUrl ?? "");
     setEditModelUrl(selected.model3dUrl ?? "");
   }, [selected]);
@@ -392,9 +397,7 @@ export default function ChessboardPage() {
             floor: Number(editFloor),
             rooms: Number(editRooms),
             areaSqm: Number(editArea.replace(",", ".")),
-            priceUzs: editPrice.trim()
-              ? Number(editPrice.replace(/\s/g, ""))
-              : null,
+            priceUzs: editPrice.trim() ? parseMoneyInput(editPrice) : null,
             layoutImageUrl: editLayoutUrl.trim() || null,
             model3dUrl: editModelUrl.trim() || null,
           }),
@@ -657,7 +660,9 @@ export default function ChessboardPage() {
               className={bulkInputClass}
               inputMode="numeric"
               value={fPriceMin}
-              onChange={(e) => setFPriceMin(e.target.value)}
+              onChange={(e) =>
+                setFPriceMin(formatMoneyInput(e.target.value))
+              }
               placeholder="—"
             />
           </label>
@@ -667,7 +672,9 @@ export default function ChessboardPage() {
               className={bulkInputClass}
               inputMode="numeric"
               value={fPriceMax}
-              onChange={(e) => setFPriceMax(e.target.value)}
+              onChange={(e) =>
+                setFPriceMax(formatMoneyInput(e.target.value))
+              }
               placeholder="—"
             />
           </label>
@@ -742,17 +749,17 @@ export default function ChessboardPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-[2rem] border border-slate-100 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-[2rem] border-2 border-slate-200 bg-white shadow-sm">
             <table className="min-w-[720px] w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50">
-                  <th className="sticky left-0 z-10 bg-slate-50 px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <tr className="bg-slate-100">
+                  <th className="sticky left-0 z-10 border border-slate-200 bg-slate-100 px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-600">
                     <Layers className="mb-1 inline h-4 w-4" />
                   </th>
                   {matrixSections.map((sk) => (
                     <th
                       key={sk || "__root__"}
-                      className="min-w-[7.5rem] border-l border-slate-100 px-2 py-3 text-center text-[10px] font-black uppercase tracking-tight text-[#1E3A8A]"
+                      className="min-w-[7.5rem] border border-slate-200 px-2 py-3 text-center text-[10px] font-black uppercase tracking-tight text-[#1E3A8A]"
                     >
                       {sk
                         ? t("blockTitle", { code: sk })
@@ -763,8 +770,8 @@ export default function ChessboardPage() {
               </thead>
               <tbody>
                 {matrixFloors.map((floor) => (
-                  <tr key={floor} className="border-t border-slate-100">
-                    <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.06)]">
+                  <tr key={floor}>
+                    <td className="sticky left-0 z-10 whitespace-nowrap border border-slate-200 bg-slate-50/90 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-600 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]">
                       {t("floor", { n: floor })}
                     </td>
                     {matrixSections.map((sk) => {
@@ -772,25 +779,30 @@ export default function ChessboardPage() {
                       return (
                         <td
                           key={`${floor}-${sk || ""}`}
-                          className="align-top border-l border-slate-50 p-2"
+                          className="align-top border border-slate-200 bg-white p-1.5"
                         >
-                          <div className="flex min-h-[3rem] flex-col gap-1.5">
+                          <div className="flex min-h-14 flex-col gap-1">
                             {units.map((a) => (
                               <button
                                 key={a.id}
                                 type="button"
                                 onClick={() => void openDetail(a)}
-                                className={`w-full min-w-[5.5rem] rounded-2xl border px-2 py-2 text-left shadow-sm transition hover:scale-[1.02] active:scale-[0.98] ${statusStyle[a.status]}`}
+                                className={`w-full min-w-[4.5rem] rounded-lg border-2 px-1.5 py-1.5 text-left shadow-sm transition hover:z-10 hover:ring-2 hover:ring-[#1E3A8A]/25 ${statusStyle[a.status]}`}
                               >
-                                <div className="text-[10px] font-black uppercase opacity-80">
+                                <div className="text-[9px] font-black uppercase opacity-90">
                                   №{a.number}
                                 </div>
-                                <div className="text-xs font-black">
+                                <div className="text-[11px] font-black leading-tight">
                                   {a.rooms} {t("rooms")}
                                 </div>
-                                <div className="text-[10px] font-bold opacity-90">
+                                <div className="text-[9px] font-bold opacity-95">
                                   {a.areaSqm} м²
                                 </div>
+                                {a.priceUzs != null ? (
+                                  <div className="mt-0.5 text-[9px] font-bold opacity-95">
+                                    {formatMoneyInput(String(a.priceUzs))} сум
+                                  </div>
+                                ) : null}
                               </button>
                             ))}
                           </div>
@@ -965,7 +977,9 @@ export default function ChessboardPage() {
                       <input
                         value={row.priceUzs}
                         onChange={(e) =>
-                          updateBulkRow(idx, { priceUzs: e.target.value })
+                          updateBulkRow(idx, {
+                            priceUzs: formatMoneyInput(e.target.value),
+                          })
                         }
                         placeholder="—"
                         className={bulkInputClass}
@@ -1045,8 +1059,8 @@ export default function ChessboardPage() {
       )}
 
       {selected && (
-        <div className="fixed inset-0 z-[100] flex justify-end bg-slate-950/40 backdrop-blur-sm">
-          <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-[100] flex justify-end bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200 lg:pointer-events-none lg:bg-transparent lg:backdrop-blur-none">
+          <div className="pointer-events-auto flex h-full w-full max-w-lg flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300 lg:h-[calc(100vh-5.5rem)] lg:max-w-[420px] lg:rounded-2xl lg:border lg:border-slate-200 lg:shadow-2xl lg:slide-in-from-bottom-0 lg:m-4">
             <div className="flex items-center justify-between border-b border-slate-100 p-6">
               <div>
                 <h2 className="text-xl font-black text-slate-900">
@@ -1202,7 +1216,9 @@ export default function ChessboardPage() {
                           className={bulkInputClass}
                           inputMode="numeric"
                           value={editPrice}
-                          onChange={(e) => setEditPrice(e.target.value)}
+                          onChange={(e) =>
+                            setEditPrice(formatMoneyInput(e.target.value))
+                          }
                         />
                       </label>
                       <label className="block space-y-1">
@@ -1302,7 +1318,9 @@ export default function ChessboardPage() {
                             <div className="font-bold text-slate-900">
                               {c.name}
                             </div>
-                            <div className="text-xs text-slate-500">{c.phone}</div>
+                            <div className="text-xs text-slate-500">
+                              {formatPhoneNumber(c.phone)}
+                            </div>
                             <div className="mt-2 space-y-1">
                               <p className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                                 <CreditCard className="h-3 w-3" />{" "}

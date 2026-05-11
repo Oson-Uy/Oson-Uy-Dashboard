@@ -33,6 +33,11 @@ const LEAD_COLUMNS: LeadStatus[] = [
   "CANCELED",
 ];
 
+/** Отзыв доступен после первого контакта (не для новой и отменённой). */
+function canRequestFeedback(status: LeadStatus) {
+  return status !== "NEW" && status !== "CANCELED";
+}
+
 function leadStatusClass(status: LeadStatus) {
   switch (status) {
     case "NEW":
@@ -341,6 +346,42 @@ export default function LeadsPage() {
                         <p className="mt-1 text-[10px] font-medium text-slate-400">
                           {formatPhoneNumber(lead.phone)}
                         </p>
+                        <div className="mt-2 flex flex-col gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void setContacted(lead.id);
+                            }}
+                            disabled={lead.status === "CONTACTED"}
+                            className="h-8 w-full rounded-lg bg-slate-900 text-[10px] font-black uppercase tracking-wide text-white disabled:bg-slate-100 disabled:text-slate-400"
+                          >
+                            {t("btnContact")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void createFeedbackLink(lead.id);
+                            }}
+                            disabled={!canRequestFeedback(lead.status)}
+                            className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black uppercase tracking-wide text-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Star className="h-3 w-3 shrink-0" /> {t("btnFeedback")}
+                          </button>
+                          {lead.feedbackUrl ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLink(lead.feedbackUrl!);
+                              }}
+                              className="text-[9px] font-black uppercase text-blue-600 underline"
+                            >
+                              {t("showLink")}
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -393,7 +434,7 @@ export default function LeadsPage() {
               <button
                 type="button"
                 onClick={() => createFeedbackLink(lead.id)}
-                disabled={lead.status !== "CONTACTED"}
+                disabled={!canRequestFeedback(lead.status)}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 text-xs font-black text-blue-700 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Star className="h-3 w-3" /> {t("btnFeedback")}
@@ -417,7 +458,7 @@ export default function LeadsPage() {
         )}
       </div>
 
-      <div className="hidden overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm md:block">
+      <div className="hidden overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-slate-100">
@@ -425,7 +466,7 @@ export default function LeadsPage() {
                 <th className="px-6 py-5">{t("table.client")}</th>
                 <th className="px-6 py-5">{t("table.project")}</th>
                 <th className="px-6 py-5">{t("table.status")}</th>
-                <th className="px-4 py-5 text-right w-[140px]">{t("table.actions")}</th>
+                <th className="min-w-[220px] px-4 py-5 text-right">{t("table.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -450,33 +491,33 @@ export default function LeadsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex flex-col items-end gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                       <button
                         type="button"
-                        title={t("btnContact")}
                         onClick={() => setContacted(lead.id)}
                         disabled={lead.status === "CONTACTED"}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3 text-[10px] font-black uppercase tracking-wide text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       >
-                        <PhoneCall className="h-4 w-4" />
+                        <PhoneCall className="h-3.5 w-3.5" />
+                        {t("btnContact")}
                       </button>
                       <button
                         type="button"
-                        title={t("btnFeedback")}
                         onClick={() => createFeedbackLink(lead.id)}
-                        disabled={lead.status !== "CONTACTED"}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={!canRequestFeedback(lead.status)}
+                        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 text-[10px] font-black uppercase tracking-wide text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <Star className="h-4 w-4" />
+                        <Star className="h-3.5 w-3.5" />
+                        {t("btnFeedback")}
                       </button>
                       {lead.feedbackUrl ? (
                         <button
                           type="button"
-                          title={t("showLink")}
                           onClick={() => setSelectedLink(lead.feedbackUrl!)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-white text-blue-600 hover:bg-blue-50"
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-black uppercase tracking-wide text-blue-700 hover:bg-slate-50"
                         >
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-3.5 w-3.5" />
+                          {t("showLink")}
                         </button>
                       ) : null}
                     </div>

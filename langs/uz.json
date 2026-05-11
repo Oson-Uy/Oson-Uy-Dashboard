@@ -251,7 +251,19 @@
       "created": "Yaratildi",
       "saved": "Saqlangan",
       "saveError": "Saqlanmadi",
-      "empty": "Hali xaridor yo'q — birinchisini yarating va kodni yuboring."
+      "empty": "Hali xaridor yo'q — birinchisini yarating va kodni yuboring.",
+      "payments": "To'lovlar",
+      "paymentsTitle": "Xaridor to'lovlari",
+      "paymentsHint": "O'tkazmani qayd eting — summalar buyer kabinetida ko'rinadi.",
+      "paymentAdd": "Yangi to'lov",
+      "paymentAmount": "Summa (UZS)",
+      "paymentDate": "To'lov sanasi",
+      "paymentComment": "Izoh (ixtiyoriy)",
+      "paymentSubmit": "Qayd etish",
+      "paymentAdded": "Qayd olindi",
+      "paymentError": "Qayd etib bo'lmadi",
+      "paymentsList": "To'lovlar tarixi",
+      "paymentsEmpty": "Hali to'lov yo'q"
     },
     "onboarding": {
       "step": "Qadam",

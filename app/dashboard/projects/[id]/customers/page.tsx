@@ -11,11 +11,12 @@ import {
   Users,
   Pencil,
   X,
+  CreditCard,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { formatUzs } from "@/lib/currency";
-import { formatPhoneNumber } from "@/lib/format";
+import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import { formatPhoneInput, formatPhoneNumber, phoneDigitsOnly } from "@/lib/format";
 
 type ApartmentOpt = {
   id: number;
@@ -44,6 +45,18 @@ type CustomerRow = {
 type ListResponse = {
   items: CustomerRow[];
   total: number;
+};
+
+type CustomerPayment = {
+  id: number;
+  amountUzs: number;
+  paidAt: string;
+  comment: string | null;
+  type: string;
+};
+
+type CustomerDetail = CustomerRow & {
+  payments: CustomerPayment[];
 };
 
 function aptLabel(a: ApartmentOpt) {
@@ -83,19 +96,57 @@ export default function ProjectCustomersPage() {
   const [editMonthly, setEditMonthly] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
+  const [payOpenId, setPayOpenId] = useState<number | null>(null);
+  const [payDetail, setPayDetail] = useState<CustomerDetail | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [payDate, setPayDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [payComment, setPayComment] = useState("");
+
   useEffect(() => {
     if (!editRow) return;
     setEditName(editRow.name);
-    setEditPhone(editRow.phone);
+    setEditPhone(formatPhoneInput(editRow.phone));
     setEditAptId(editRow.apartmentId != null ? String(editRow.apartmentId) : "");
     setEditTotal(
-      editRow.totalPriceUzs != null ? String(editRow.totalPriceUzs) : "",
+      editRow.totalPriceUzs != null
+        ? formatMoneyInput(String(editRow.totalPriceUzs))
+        : "",
     );
     setEditMonthly(
-      editRow.monthlyDueUzs != null ? String(editRow.monthlyDueUzs) : "",
+      editRow.monthlyDueUzs != null
+        ? formatMoneyInput(String(editRow.monthlyDueUzs))
+        : "",
     );
     setEditNotes(editRow.notes ?? "");
   }, [editRow]);
+
+  const loadPayDetail = useCallback(
+    async (customerId: number) => {
+      setPayLoading(true);
+      try {
+        const d = await apiFetch<CustomerDetail>(
+          `/projects/${projectId}/customers/${customerId}`,
+        );
+        setPayDetail(d);
+      } catch {
+        setError(t("loadError"));
+      } finally {
+        setPayLoading(false);
+      }
+    },
+    [projectId, t],
+  );
+
+  useEffect(() => {
+    if (payOpenId == null) {
+      setPayDetail(null);
+      return;
+    }
+    void loadPayDetail(payOpenId);
+  }, [payOpenId, loadPayDetail]);
 
   const load = useCallback(async () => {
     if (!projectId || Number.isNaN(projectId)) return;
@@ -163,13 +214,13 @@ export default function ProjectCustomersPage() {
     try {
       const body: Record<string, unknown> = {
         name: createName.trim(),
-        phone: createPhone.trim(),
+        phone: phoneDigitsOnly(createPhone) || createPhone.trim(),
         ...(createAptId ? { apartmentId: Number(createAptId) } : {}),
         ...(createTotal.trim()
-          ? { totalPriceUzs: Number(createTotal.replace(/\s/g, "")) }
+          ? { totalPriceUzs: parseMoneyInput(createTotal) }
           : {}),
         ...(createMonthly.trim()
-          ? { monthlyDueUzs: Number(createMonthly.replace(/\s/g, "")) }
+          ? { monthlyDueUzs: parseMoneyInput(createMonthly) }
           : {}),
         ...(createNotes.trim() ? { notes: createNotes.trim() } : {}),
       };
@@ -201,13 +252,11 @@ export default function ProjectCustomersPage() {
     try {
       const body: Record<string, unknown> = {
         name: editName.trim(),
-        phone: editPhone.trim(),
+        phone: phoneDigitsOnly(editPhone) || editPhone.trim(),
         apartmentId: editAptId ? Number(editAptId) : null,
-        totalPriceUzs: editTotal.trim()
-          ? Number(editTotal.replace(/\s/g, ""))
-          : null,
+        totalPriceUzs: editTotal.trim() ? parseMoneyInput(editTotal) : null,
         monthlyDueUzs: editMonthly.trim()
-          ? Number(editMonthly.replace(/\s/g, ""))
+          ? parseMoneyInput(editMonthly)
           : null,
         notes: editNotes.trim() || null,
       };
@@ -221,6 +270,38 @@ export default function ProjectCustomersPage() {
       setTimeout(() => setNotice(null), 2500);
     } catch {
       setError(t("saveError"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (payOpenId == null || !payAmount.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const paidAt = new Date(payDate);
+      paidAt.setHours(12, 0, 0, 0);
+      await apiFetch(
+        `/projects/${projectId}/customers/${payOpenId}/payments`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            amountUzs: parseMoneyInput(payAmount),
+            paidAt: paidAt.toISOString(),
+            ...(payComment.trim() ? { comment: payComment.trim() } : {}),
+          }),
+        },
+      );
+      setPayAmount("");
+      setPayComment("");
+      await loadPayDetail(payOpenId);
+      await load();
+      setNotice(t("paymentAdded"));
+      setTimeout(() => setNotice(null), 2500);
+    } catch {
+      setError(t("paymentError"));
     } finally {
       setSaving(false);
     }
@@ -307,9 +388,10 @@ export default function ProjectCustomersPage() {
             <input
               className={inputClass}
               value={createPhone}
-              onChange={(e) => setCreatePhone(e.target.value)}
+              onChange={(e) => setCreatePhone(formatPhoneInput(e.target.value))}
               required
-              placeholder="+998…"
+              placeholder="+998 __ ___ __ __"
+              autoComplete="tel"
             />
           </label>
           <label className="space-y-1 sm:col-span-1">
@@ -337,8 +419,10 @@ export default function ProjectCustomersPage() {
               className={inputClass}
               inputMode="numeric"
               value={createTotal}
-              onChange={(e) => setCreateTotal(e.target.value)}
-              placeholder="—"
+              onChange={(e) =>
+                setCreateTotal(formatMoneyInput(e.target.value))
+              }
+              placeholder="0"
             />
           </label>
           <label className="space-y-1">
@@ -349,8 +433,10 @@ export default function ProjectCustomersPage() {
               className={inputClass}
               inputMode="numeric"
               value={createMonthly}
-              onChange={(e) => setCreateMonthly(e.target.value)}
-              placeholder="—"
+              onChange={(e) =>
+                setCreateMonthly(formatMoneyInput(e.target.value))
+              }
+              placeholder="0"
             />
           </label>
           <label className="space-y-1 sm:col-span-2 lg:col-span-3">
@@ -427,6 +513,13 @@ export default function ProjectCustomersPage() {
                     <div className="inline-flex flex-wrap items-center justify-end gap-2">
                       <button
                         type="button"
+                        onClick={() => setPayOpenId(r.id)}
+                        className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-900 hover:bg-emerald-100"
+                      >
+                        <CreditCard className="h-3 w-3" /> {t("payments")}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setEditId(r.id)}
                         className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50"
                       >
@@ -458,6 +551,122 @@ export default function ProjectCustomersPage() {
           </table>
         </div>
       </section>
+
+      {payOpenId != null && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[2rem] bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-black text-[#1E3A8A]">
+                {t("paymentsTitle")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setPayOpenId(null);
+                  setPayDetail(null);
+                }}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+                aria-label={t("close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {payLoading || !payDetail ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-10 w-10 animate-spin text-[#1E3A8A]" />
+              </div>
+            ) : (
+              <>
+                <p className="mb-4 text-sm font-bold text-slate-800">
+                  {payDetail.name}{" "}
+                  <span className="font-medium text-slate-500">
+                    · {formatPhoneNumber(payDetail.phone)}
+                  </span>
+                </p>
+                <p className="mb-6 text-xs font-medium text-slate-500">
+                  {t("paymentsHint")}
+                </p>
+                <form onSubmit={submitPayment} className="mb-8 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                    {t("paymentAdd")}
+                  </p>
+                  <label className="block space-y-1">
+                    <span className="text-[10px] font-black uppercase text-slate-500">
+                      {t("paymentAmount")}
+                    </span>
+                    <input
+                      className={inputClass}
+                      inputMode="numeric"
+                      value={payAmount}
+                      onChange={(e) =>
+                        setPayAmount(formatMoneyInput(e.target.value))
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-[10px] font-black uppercase text-slate-500">
+                      {t("paymentDate")}
+                    </span>
+                    <input
+                      type="date"
+                      className={inputClass}
+                      value={payDate}
+                      onChange={(e) => setPayDate(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-[10px] font-black uppercase text-slate-500">
+                      {t("paymentComment")}
+                    </span>
+                    <input
+                      className={inputClass}
+                      value={payComment}
+                      onChange={(e) => setPayComment(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1E3A8A] py-3 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : null}
+                    {t("paymentSubmit")}
+                  </button>
+                </form>
+                <div>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    {t("paymentsList")}
+                  </p>
+                  {payDetail.payments?.length ? (
+                    <ul className="max-h-48 space-y-2 overflow-y-auto">
+                      {payDetail.payments.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex justify-between gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm"
+                        >
+                          <span className="font-black text-slate-900">
+                            {formatUzs(p.amountUzs)}
+                          </span>
+                          <span className="shrink-0 text-xs text-slate-500">
+                            {new Date(p.paidAt).toLocaleDateString()}{" "}
+                            {p.comment ? `· ${p.comment}` : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-400">{t("paymentsEmpty")}</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {editId != null && editRow && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -492,8 +701,11 @@ export default function ProjectCustomersPage() {
                 <input
                   className={inputClass}
                   value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
+                  onChange={(e) =>
+                    setEditPhone(formatPhoneInput(e.target.value))
+                  }
                   required
+                  autoComplete="tel"
                 />
               </label>
               <label className="block space-y-1">
@@ -521,7 +733,9 @@ export default function ProjectCustomersPage() {
                   className={inputClass}
                   inputMode="numeric"
                   value={editTotal}
-                  onChange={(e) => setEditTotal(e.target.value)}
+                  onChange={(e) =>
+                    setEditTotal(formatMoneyInput(e.target.value))
+                  }
                 />
               </label>
               <label className="block space-y-1">
@@ -532,7 +746,9 @@ export default function ProjectCustomersPage() {
                   className={inputClass}
                   inputMode="numeric"
                   value={editMonthly}
-                  onChange={(e) => setEditMonthly(e.target.value)}
+                  onChange={(e) =>
+                    setEditMonthly(formatMoneyInput(e.target.value))
+                  }
                 />
               </label>
               <label className="block space-y-1">
