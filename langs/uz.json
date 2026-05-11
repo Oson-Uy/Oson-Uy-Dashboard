@@ -95,11 +95,14 @@
         "contacted": "Bog'lanildi",
         "rating": "Reyting"
       },
+      "projectFilter": "Loyiha",
+      "projectFilterAll": "Barcha loyihalar",
       "table": {
         "client": "Mijoz",
         "project": "Loyiha",
         "status": "Holat",
         "action": "Harakat",
+        "actions": "Harakatlar",
         "feedback": "Sharh"
       },
       "btnContact": "Bog'lanish",
@@ -179,7 +182,76 @@
         "badCount": "Oraliq va sonni tekshiring (1–2500).",
         "invalidNumbers": "Raqamlarni tekshiring: qavatlar, kvartiralar, xonalar, maydon.",
         "error": "Yaratib bo'lmadi"
-      }
+      },
+      "filters": {
+        "title": "Filtrlar",
+        "section": "Blok",
+        "sectionAll": "Barcha bloklar",
+        "rooms": "Xonalar",
+        "roomsAll": "Har qanday",
+        "priceFrom": "Narx dan",
+        "priceTo": "gacha",
+        "areaFrom": "Maydon dan",
+        "areaTo": "gacha",
+        "floorFrom": "Qavat dan",
+        "floorTo": "gacha",
+        "reset": "Tozalash",
+        "matrixHint": "Qatorlar — qavatlar, ustunlar — bloklar",
+        "noMatch": "Filtr bo‘yicha kvartira yo‘q — filtrlarni o‘zgartiring yoki tozalang."
+      },
+      "floorLabel": "Qavat",
+      "customersLink": "Xaridorlar",
+      "layoutPreview": "Reja",
+      "plan2d": "2D reja",
+      "plan3d": "3D",
+      "open3d": "3D ochish",
+      "editUnit": "Kvartirani tahrirlash",
+      "saveUnit": "Saqlash",
+      "savingUnit": "Saqlanmoqda…",
+      "uploadLayout": "Reja rasmini yuklash",
+      "layoutUrl": "Reja havolasi",
+      "modelUrl": "3D havola",
+      "number": "Raqam",
+      "areaSqm": "Maydon m²"
+    },
+    "customers": {
+      "title": "Xaridorlar",
+      "subtitle": "kirish kodi va kvartira bog'lash",
+      "loadError": "Ma'lumot yuklanmadi",
+      "badProject": "Noto'g'ri loyiha",
+      "back": "Loyihalarga",
+      "openChessboard": "Shaxmatka",
+      "createTitle": "Yangi xaridor",
+      "listTitle": "Ro'yxat",
+      "listHint": "Kirish kodi faqat shu yerda ko'rinadi — mijozga telefon bilan birga yuboring.",
+      "name": "Ism",
+      "phone": "Telefon",
+      "apartment": "Kvartira",
+      "apartmentOptional": "Bog'lanmasin",
+      "apartmentShort": "Kvartira",
+      "apartmentClear": "Bog'lashni olib tashlash",
+      "totalPrice": "Shartnoma summasi (UZS)",
+      "monthlyDue": "Shu oy to'lov (UZS)",
+      "monthlyDueShort": "Oyiga",
+      "notes": "Izoh",
+      "accessCode": "Kod",
+      "actions": "Harakatlar",
+      "copy": "Nusxa",
+      "copied": "Nusxa olindi",
+      "copyFail": "Nusxa xato",
+      "regenerate": "Yangi kod",
+      "regenerated": "Kod yangilandi",
+      "regenerateError": "Kod yangilanmadi",
+      "edit": "Tahrirlash",
+      "editTitle": "Xaridorni tahrirlash",
+      "close": "Yopish",
+      "cancel": "Bekor",
+      "save": "Saqlash",
+      "createBtn": "Yaratish",
+      "created": "Yaratildi",
+      "saved": "Saqlangan",
+      "saveError": "Saqlanmadi",
+      "empty": "Hali xaridor yo'q — birinchisini yarating va kodni yuboring."
     },
     "onboarding": {
       "step": "Qadam",
@@ -189,49 +261,48 @@
       "finish": "Ishni boshlash",
       "steps": [
         {
-          "title": "Quruvchi kabinetiga xush kelibsiz",
-          "description": "Qisqacha: bitta kabinet — saytdagi loyihalar, kiruvchi arizalar, promokod/tariflar va kompaniya profili.",
+          "title": "Bitta kabinet — loyiha, shaxmatka va xaridorlar",
+          "description": "Chap menyuda: umumiy ko'rinish, arizalar, loyihalar, qurilish jarayoni, tariflar va profil. Loyiha kartochkasidan kvartiralar shaxmatkasi va CRM ochiladi.",
           "bullets": [
-            "Bu yerda TY va qavatlarni tahrirlaysiz (m² narxi, maydon, surat) — xaridorlar OsonUy katalogida shuni ko'radi.",
-            "Chap menyudan foydalaning: Umumiy, Arizalar, Loyihalar, Qavatlar, Tariflar, Profil.",
-            "Hisobdan chiqish — yon panel pastidagi tugma yoki telefonda sarlavhadagi chiqish belgisi."
+            "«Loyihalar»da TY kartochkasini yarating va tahrirlang — xaridorlar OsonUy katalogida shuni ko'radi.",
+            "Shaxmatka va xaridorlar ma'lum loyiha bilan bog'langan: qoldiqlar va kirish kodlari tartibli.",
+            "Hisobdan chiqish — pastki panel yoki telefon menyusi orqali."
           ]
         },
         {
-          "title": "Avval loyiha, keyin qavatlar",
-          "description": "Mantiq oddiy: avval TY yarating, keyin qavatlarni to'ldiring. Saytda mijoz binoning «minorasida» qavatni bosadi va ariza qoldiradi — ariza tanlangan qavatga bog'lanadi.",
+          "title": "Shaxmatka: ommaviy qo'shish va filtrlar",
+          "description": "Shaxmatkada bloklar va qavatlar bo'yicha ommaviy kvartira qo'shish, blok, xonalar, narx va qavat bo'yicha filtrlash mumkin. «Qavat × blok» jadvalida holatlar: bo'sh / bron / sotilgan.",
           "bullets": [
-            "«Loyihalar»: TY yarating — nom, manzil, suratlar, tavsif, topshirish muddati.",
-            "«Qavatlar»: har bir qavat uchun m² narxi, maydon va namuna surat — saytdagi bino ko'rinishi shunga asoslangan.",
-            "To'liqroq kartochka va sifatli suratlar — ishonch va arizalar soni uchun muhim."
+            "«Ommaviy qo'shish» bilan qavat oralig'i va qavatdagi kv.soni — raqamlar avtomatik chiqadi.",
+            "Yon panelda 2D reja, 3D havola va kerak bo'lsa maydonlarni tahrirlash, reja rasmini yuklash.",
+            "Holatlarni tez o'zgartirish mumkin — ular kvartira kartasi bilan mos."
           ]
         },
         {
-          "title": "Arizalar: qo'ng'iroq → holat → sharh",
-          "description": "Saytdan barcha arizalar «Arizalar»ga ism va telefon bilan tushadi. Holat va sharh havolasi faqat shu yerda o'zgartiriladi.",
+          "title": "CRM va kirish kodi",
+          "description": "Loyiha bo'yicha «Xaridorlar»da mijoz yaratasiz, kvartira bog'laysiz va noyob kirish kodini olasiz. Kod va telefon bilan mijoz saytdagi shaxsiy kabinetga kiradi.",
           "bullets": [
-            "Arizani oching, mijozga ko'rsatilgan raqamga qo'ng'iroq qiling.",
-            "Suhbatdan keyin «Bog'landi» tugmasini bosing — keyingi qadam uchun bu kerak.",
-            "«Sharh» tugmasi havola yaratadi; uni mijozga yuboring (messenger, SMS).",
-            "Holatni yoki havolani qayta o'zgartirish uchun doim shu kabinet, «Arizalar» bo'limiga kiring."
+            "Kod jadvalda ko'rinadi va bir tugma bilan nusxa olinadi; zarurat bo'lsa yangi kod chiqariladi.",
+            "Shartnoma summasi va «shu oy to'lovi» buyer kabinetida chiqishi uchun bu yerda kiriting.",
+            "Agar CRM'da mijoz bo'lmasa, «kod chiqmayapti» degan ta'shod bo'ladi — mijozni shu sahifada yarating."
           ]
         },
         {
-          "title": "Tariflar va katalogda ko'rinish",
-          "description": "«Tariflar»da aniq loyiha uchun reja tanlaysiz: ko'proq media va katalogda yuqori o'rin.",
+          "title": "Arizalar bo'yicha filtr va sharh",
+          "description": "Saytdan kelgan arizalar «Arizalar»da. Loyiha bo'yicha filtrlash, ustunlarda holat (drag-and-drop) va jadvalda ixcham tugmalar.",
           "bullets": [
-            "Loyiha va tarifni tanlang (Start, Pro va boshqalar) — xizmatlar va surat limitlari sahifada yozilgan.",
-            "Obunani rasmiylashtirish va uzaytirish shu bo'limda.",
-            "Faol tarif ko'proq ko'rish va arizalar olishga yordam beradi."
+            "Qo'ng'iroq qiling va «Bog'landi»ni bosing — keyin sharh havolasi ochiladi.",
+            "Sharh havolasini modal orqali yoki qatoridagi tugma bilan nusxalang.",
+            "Ko'p ariza bo'lsa ism va telefon bo'yicha qidiring."
           ]
         },
         {
-          "title": "Profil va bildirishnomalar",
-          "description": "«Profil»da kompaniya ma'lumotlarini tekshiring. Xohlasangiz Telegram ulansangiz — yangi arizalar haqida xabar olish mumkin.",
+          "title": "Qurilish bosqichlari xaridor uchun",
+          "description": "«Jarayon»da qurilish nuqtalarini yozing va bajarilganlarini belgilang — foiz va ro'yxat buyer kabinetida ko'rinadi. Tariflar va kompaniya — boshqa menyuda.",
           "bullets": [
-            "Profilda quruvchi ma'lumotlari — dolzarblab turish muhim.",
-            "Telegram integratsiyasi yoqilgan bo'lsa, profilda botni bog'lash havolasi bo'ladi: «Start»dan keyin faqat sizning arizalaringiz keladi.",
-            "Keyingi qadamlar: loyihalarni yangilang, mijozlarga tez javob bering, «Arizalar»dan sharh havolasini yuboring."
+            "Nuqtalarga tushunarli nom va xohlasangiz surat qo'shing.",
+            "Xaridor to'lovlar, qoldiq va (CRM'da ko'rsatilsa) oyiga to'lovni ko'radi.",
+            "Faol tarif katalogda ko'rinishni kuchaytiradi — «Tariflar» bo'limida ulang."
           ]
         }
       ]
@@ -319,6 +390,7 @@
       "newProject": "Yangi loyiha",
       "progress": "Qurilish jarayoni",
       "chessboard": "Kvartiralar shaxmatkasi",
+      "customers": "CRM xaridorlar",
       "details": "Batafsil",
       "editProject": "Loyihani tahrirlash",
       "addProject": "Yangi loyiha qo'shish",

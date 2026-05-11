@@ -14,6 +14,9 @@ import {
   LayoutGrid,
   Plus,
   Trash2,
+  Users,
+  SlidersHorizontal,
+  ExternalLink,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { API_URL, apiFetch, getToken } from "@/lib/api";
@@ -32,6 +35,7 @@ type Apartment = {
   status: AptStatus;
   layoutImageUrl?: string | null;
   model3dUrl?: string | null;
+  sortOrder?: number;
 };
 
 type ApartmentDetail = Apartment & {
@@ -153,6 +157,26 @@ export default function ChessboardPage() {
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
 
+  const [fSection, setFSection] = useState("");
+  const [fRooms, setFRooms] = useState("");
+  const [fPriceMin, setFPriceMin] = useState("");
+  const [fPriceMax, setFPriceMax] = useState("");
+  const [fAreaMin, setFAreaMin] = useState("");
+  const [fAreaMax, setFAreaMax] = useState("");
+  const [fFloorMin, setFFloorMin] = useState("");
+  const [fFloorMax, setFFloorMax] = useState("");
+
+  const [planTab, setPlanTab] = useState<"2d" | "3d">("2d");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editNumber, setEditNumber] = useState("");
+  const [editFloor, setEditFloor] = useState("");
+  const [editRooms, setEditRooms] = useState("");
+  const [editArea, setEditArea] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editLayoutUrl, setEditLayoutUrl] = useState("");
+  const [editModelUrl, setEditModelUrl] = useState("");
+  const [unitSaving, setUnitSaving] = useState(false);
+
   const load = useCallback(async () => {
     if (!projectId || Number.isNaN(projectId)) return;
     setLoading(true);
@@ -175,31 +199,89 @@ export default function ChessboardPage() {
     void load();
   }, [load]);
 
-  const hasSections = useMemo(
-    () => list.some((a) => (a.sectionKey ?? "").length > 0),
-    [list],
-  );
+  const parseNum = (s: string) => {
+    const t = s.trim().replace(/\s/g, "").replace(",", ".");
+    if (!t) return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  };
 
-  const grouped = useMemo(() => {
-    const sectionMap = new Map<string, Apartment[]>();
-    for (const a of list) {
-      const sk = a.sectionKey ?? "";
-      if (!sectionMap.has(sk)) sectionMap.set(sk, []);
-      sectionMap.get(sk)!.push(a);
-    }
-    const entries = [...sectionMap.entries()].sort((a, b) =>
-      a[0].localeCompare(b[0], undefined, { numeric: true }),
-    );
-    return entries.map(([sectionKey, units]) => {
-      const floorMap = new Map<number, Apartment[]>();
-      for (const u of units) {
-        if (!floorMap.has(u.floor)) floorMap.set(u.floor, []);
-        floorMap.get(u.floor)!.push(u);
-      }
-      const floors = [...floorMap.entries()].sort((x, y) => y[0] - x[0]);
-      return { sectionKey, floors };
+  const filteredList = useMemo(() => {
+    return list.filter((a) => {
+      if (fSection && (a.sectionKey ?? "") !== fSection) return false;
+      if (fRooms && String(a.rooms) !== fRooms) return false;
+      const p = a.priceUzs;
+      const pmin = parseNum(fPriceMin);
+      const pmax = parseNum(fPriceMax);
+      if (pmin != null && (p == null || p < pmin)) return false;
+      if (pmax != null && (p == null || p > pmax)) return false;
+      const amin = parseNum(fAreaMin);
+      const amax = parseNum(fAreaMax);
+      if (amin != null && a.areaSqm < amin) return false;
+      if (amax != null && a.areaSqm > amax) return false;
+      const fmin = parseNum(fFloorMin);
+      const fmax = parseNum(fFloorMax);
+      if (fmin != null && a.floor < fmin) return false;
+      if (fmax != null && a.floor > fmax) return false;
+      return true;
     });
+  }, [
+    list,
+    fSection,
+    fRooms,
+    fPriceMin,
+    fPriceMax,
+    fAreaMin,
+    fAreaMax,
+    fFloorMin,
+    fFloorMax,
+  ]);
+
+  const sectionOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of list) set.add(a.sectionKey ?? "");
+    return [...set].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
   }, [list]);
+
+  const roomOptions = useMemo(() => {
+    const set = new Set<number>();
+    for (const a of list) set.add(a.rooms);
+    return [...set].sort((a, b) => a - b);
+  }, [list]);
+
+  const matrixSections = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of filteredList) set.add(a.sectionKey ?? "");
+    return [...set].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
+  }, [filteredList]);
+
+  const matrixFloors = useMemo(() => {
+    const set = new Set<number>();
+    for (const a of filteredList) set.add(a.floor);
+    return [...set].sort((a, b) => b - a);
+  }, [filteredList]);
+
+  const unitsByCell = useMemo(() => {
+    const map = new Map<string, Apartment[]>();
+    for (const a of filteredList) {
+      const sk = a.sectionKey ?? "";
+      const k = `${a.floor}::${sk}`;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(a);
+    }
+    for (const arr of map.values()) {
+      arr.sort((x, y) => {
+        const so = (x.sortOrder ?? 0) - (y.sortOrder ?? 0);
+        if (so !== 0) return so;
+        return x.number.localeCompare(y.number, undefined, { numeric: true });
+      });
+    }
+    return map;
+  }, [filteredList]);
 
   const bulkPreviewCount = useMemo(
     () => countBulkUnits(bulkSections),
@@ -241,6 +323,92 @@ export default function ChessboardPage() {
         `/projects/${projectId}/apartments/${aptId}`,
       );
       setSelected(d);
+    }
+  };
+
+  useEffect(() => {
+    if (!selected) {
+      setEditOpen(false);
+      return;
+    }
+    setEditNumber(selected.number);
+    setEditFloor(String(selected.floor));
+    setEditRooms(String(selected.rooms));
+    setEditArea(String(selected.areaSqm));
+    setEditPrice(selected.priceUzs != null ? String(selected.priceUzs) : "");
+    setEditLayoutUrl(selected.layoutImageUrl ?? "");
+    setEditModelUrl(selected.model3dUrl ?? "");
+  }, [selected]);
+
+  useEffect(() => {
+    if (!selected) return;
+    if (selected.layoutImageUrl) setPlanTab("2d");
+    else if (selected.model3dUrl) setPlanTab("3d");
+  }, [selected?.id, selected?.layoutImageUrl, selected?.model3dUrl]);
+
+  const resetFilters = () => {
+    setFSection("");
+    setFRooms("");
+    setFPriceMin("");
+    setFPriceMax("");
+    setFAreaMin("");
+    setFAreaMax("");
+    setFFloorMin("");
+    setFFloorMax("");
+  };
+
+  const cellUnits = (floor: number, sectionKey: string) =>
+    unitsByCell.get(`${floor}::${sectionKey}`) ?? [];
+
+  const uploadLayoutFile = async (file: File) => {
+    const token = getToken();
+    if (!token) return;
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_URL}/upload/image`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) throw new Error("upload");
+    const data = (await res.json()) as { url?: string };
+    if (data?.url) setEditLayoutUrl(data.url);
+  };
+
+  const saveUnitEdit = async () => {
+    if (!selected) return;
+    setUnitSaving(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/projects/${projectId}/apartments/${selected.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            number: editNumber.trim(),
+            floor: Number(editFloor),
+            rooms: Number(editRooms),
+            areaSqm: Number(editArea.replace(",", ".")),
+            priceUzs: editPrice.trim()
+              ? Number(editPrice.replace(/\s/g, ""))
+              : null,
+            layoutImageUrl: editLayoutUrl.trim() || null,
+            model3dUrl: editModelUrl.trim() || null,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("patch");
+      await load();
+      const d = await apiFetch<ApartmentDetail>(
+        `/projects/${projectId}/apartments/${selected.id}`,
+      );
+      setSelected(d);
+      setEditOpen(false);
+    } finally {
+      setUnitSaving(false);
     }
   };
 
@@ -397,6 +565,13 @@ export default function ChessboardPage() {
           </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+          <Link
+            href={`/dashboard/projects/${projectId}/customers`}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-widest text-slate-800 shadow-sm transition hover:bg-slate-50"
+          >
+            <Users className="h-4 w-4" />
+            {t("customersLink")}
+          </Link>
           <button
             type="button"
             onClick={() => {
@@ -431,8 +606,119 @@ export default function ChessboardPage() {
         </div>
       )}
 
+      <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <SlidersHorizontal className="h-5 w-5 shrink-0 text-[#1E3A8A]" />
+          <span className="text-sm font-black uppercase tracking-widest text-slate-800">
+            {t("filters.title")}
+          </span>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="ml-auto rounded-xl border border-slate-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50"
+          >
+            {t("filters.reset")}
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.section")}</span>
+            <select
+              className={bulkInputClass}
+              value={fSection}
+              onChange={(e) => setFSection(e.target.value)}
+            >
+              <option value="">{t("filters.sectionAll")}</option>
+              {sectionOptions.map((sk) => (
+                <option key={sk || "__empty"} value={sk}>
+                  {sk ? t("blockTitle", { code: sk }) : t("blockDefault")}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.rooms")}</span>
+            <select
+              className={bulkInputClass}
+              value={fRooms}
+              onChange={(e) => setFRooms(e.target.value)}
+            >
+              <option value="">{t("filters.roomsAll")}</option>
+              {roomOptions.map((r) => (
+                <option key={r} value={String(r)}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.priceFrom")}</span>
+            <input
+              className={bulkInputClass}
+              inputMode="numeric"
+              value={fPriceMin}
+              onChange={(e) => setFPriceMin(e.target.value)}
+              placeholder="—"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.priceTo")}</span>
+            <input
+              className={bulkInputClass}
+              inputMode="numeric"
+              value={fPriceMax}
+              onChange={(e) => setFPriceMax(e.target.value)}
+              placeholder="—"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.areaFrom")}</span>
+            <input
+              className={bulkInputClass}
+              inputMode="decimal"
+              value={fAreaMin}
+              onChange={(e) => setFAreaMin(e.target.value)}
+              placeholder="—"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.areaTo")}</span>
+            <input
+              className={bulkInputClass}
+              inputMode="decimal"
+              value={fAreaMax}
+              onChange={(e) => setFAreaMax(e.target.value)}
+              placeholder="—"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.floorFrom")}</span>
+            <input
+              className={bulkInputClass}
+              inputMode="numeric"
+              value={fFloorMin}
+              onChange={(e) => setFFloorMin(e.target.value)}
+              placeholder="—"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={bulkLabelClass}>{t("filters.floorTo")}</span>
+            <input
+              className={bulkInputClass}
+              inputMode="numeric"
+              value={fFloorMax}
+              onChange={(e) => setFFloorMax(e.target.value)}
+              placeholder="—"
+            />
+          </label>
+        </div>
+        <p className="mt-3 text-xs font-medium text-slate-500">
+          {t("filters.matrixHint")}
+        </p>
+      </div>
+
       <div className="space-y-8">
-        {grouped.length === 0 ? (
+        {list.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center text-slate-500 font-medium">
             <p className="mb-4">{t("empty")}</p>
             <button
@@ -444,54 +730,78 @@ export default function ChessboardPage() {
               {t("bulk.open")}
             </button>
           </div>
+        ) : filteredList.length === 0 ? (
+          <div className="rounded-3xl border border-amber-100 bg-amber-50/80 p-10 text-center text-amber-950 font-medium">
+            <p className="mb-3">{t("filters.noMatch")}</p>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-xl bg-white px-5 py-2 text-xs font-black uppercase tracking-widest text-amber-900 shadow-sm"
+            >
+              {t("filters.reset")}
+            </button>
+          </div>
         ) : (
-          grouped.map(({ sectionKey, floors }) => (
-            <div key={sectionKey || "__single__"} className="space-y-4">
-              {hasSections ? (
-                <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-                  <Layers className="h-5 w-5 text-[#1E3A8A]" />
-                  <h2 className="text-lg font-black uppercase tracking-tight text-[#1E3A8A]">
-                    {sectionKey
-                      ? t("blockTitle", { code: sectionKey })
-                      : t("blockDefault")}
-                  </h2>
-                </div>
-              ) : null}
-              <div className="space-y-6">
-                {floors.map(([floor, units]) => (
-                  <div
-                    key={`${sectionKey}-${floor}`}
-                    className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm"
-                  >
-                    <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-400">
-                      <Layers className="h-4 w-4" />
+          <div className="overflow-x-auto rounded-[2rem] border border-slate-100 bg-white shadow-sm">
+            <table className="min-w-[720px] w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="sticky left-0 z-10 bg-slate-50 px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <Layers className="mb-1 inline h-4 w-4" />
+                  </th>
+                  {matrixSections.map((sk) => (
+                    <th
+                      key={sk || "__root__"}
+                      className="min-w-[7.5rem] border-l border-slate-100 px-2 py-3 text-center text-[10px] font-black uppercase tracking-tight text-[#1E3A8A]"
+                    >
+                      {sk
+                        ? t("blockTitle", { code: sk })
+                        : t("blockDefault")}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrixFloors.map((floor) => (
+                  <tr key={floor} className="border-t border-slate-100">
+                    <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.06)]">
                       {t("floor", { n: floor })}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {units.map((a) => (
-                        <button
-                          key={a.id}
-                          type="button"
-                          onClick={() => void openDetail(a)}
-                          className={`min-w-[5.5rem] rounded-2xl border px-3 py-3 text-left shadow-sm transition hover:scale-[1.02] active:scale-[0.98] ${statusStyle[a.status]}`}
+                    </td>
+                    {matrixSections.map((sk) => {
+                      const units = cellUnits(floor, sk);
+                      return (
+                        <td
+                          key={`${floor}-${sk || ""}`}
+                          className="align-top border-l border-slate-50 p-2"
                         >
-                          <div className="text-[10px] font-black uppercase opacity-80">
-                            №{a.number}
+                          <div className="flex min-h-[3rem] flex-col gap-1.5">
+                            {units.map((a) => (
+                              <button
+                                key={a.id}
+                                type="button"
+                                onClick={() => void openDetail(a)}
+                                className={`w-full min-w-[5.5rem] rounded-2xl border px-2 py-2 text-left shadow-sm transition hover:scale-[1.02] active:scale-[0.98] ${statusStyle[a.status]}`}
+                              >
+                                <div className="text-[10px] font-black uppercase opacity-80">
+                                  №{a.number}
+                                </div>
+                                <div className="text-xs font-black">
+                                  {a.rooms} {t("rooms")}
+                                </div>
+                                <div className="text-[10px] font-bold opacity-90">
+                                  {a.areaSqm} м²
+                                </div>
+                              </button>
+                            ))}
                           </div>
-                          <div className="text-sm font-black">
-                            {a.rooms} {t("rooms")}
-                          </div>
-                          <div className="text-[10px] font-bold opacity-90">
-                            {a.areaSqm} м²
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
                 ))}
-              </div>
-            </div>
-          ))
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -736,7 +1046,7 @@ export default function ChessboardPage() {
 
       {selected && (
         <div className="fixed inset-0 z-[100] flex justify-end bg-slate-950/40 backdrop-blur-sm">
-          <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300">
+          <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between border-b border-slate-100 p-6">
               <div>
                 <h2 className="text-xl font-black text-slate-900">
@@ -767,6 +1077,182 @@ export default function ChessboardPage() {
                 </div>
               ) : (
                 <>
+                  {(selected.layoutImageUrl || selected.model3dUrl) && (
+                    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                      <div className="flex border-b border-slate-100 bg-white">
+                        <button
+                          type="button"
+                          onClick={() => setPlanTab("2d")}
+                          className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest ${
+                            planTab === "2d"
+                              ? "bg-[#1E3A8A] text-white"
+                              : "text-slate-500 hover:bg-slate-50"
+                          }`}
+                          disabled={!selected.layoutImageUrl}
+                        >
+                          {t("plan2d")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPlanTab("3d")}
+                          className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest ${
+                            planTab === "3d"
+                              ? "bg-[#1E3A8A] text-white"
+                              : "text-slate-500 hover:bg-slate-50"
+                          }`}
+                          disabled={!selected.model3dUrl}
+                        >
+                          {t("plan3d")}
+                        </button>
+                      </div>
+                      <div className="p-3">
+                        {planTab === "2d" && selected.layoutImageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={selected.layoutImageUrl}
+                            alt=""
+                            className="mx-auto max-h-56 w-full rounded-xl object-contain"
+                          />
+                        ) : planTab === "3d" && selected.model3dUrl ? (
+                          <div className="flex flex-col items-center justify-center gap-3 py-8">
+                            <a
+                              href={selected.model3dUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              {t("open3d")}
+                            </a>
+                          </div>
+                        ) : (
+                          <p className="py-6 text-center text-xs text-slate-400">
+                            —
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setEditOpen((v) => !v)}
+                    className="w-full rounded-2xl border border-slate-200 py-3 text-xs font-black uppercase tracking-widest text-slate-800 hover:bg-slate-50"
+                  >
+                    {editOpen ? t("close") : t("editUnit")}
+                  </button>
+
+                  {editOpen && (
+                    <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        {t("editUnit")}
+                      </p>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          {t("number")}
+                        </span>
+                        <input
+                          className={bulkInputClass}
+                          value={editNumber}
+                          onChange={(e) => setEditNumber(e.target.value)}
+                        />
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="space-y-1">
+                          <span className="text-[10px] font-black uppercase text-slate-400">
+                            {t("floorLabel")}
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className={bulkInputClass}
+                            value={editFloor}
+                            onChange={(e) => setEditFloor(e.target.value)}
+                          />
+                        </label>
+                        <label className="space-y-1">
+                          <span className="text-[10px] font-black uppercase text-slate-400">
+                            {t("bulk.rooms")}
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className={bulkInputClass}
+                            value={editRooms}
+                            onChange={(e) => setEditRooms(e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          {t("areaSqm")}
+                        </span>
+                        <input
+                          className={bulkInputClass}
+                          inputMode="decimal"
+                          value={editArea}
+                          onChange={(e) => setEditArea(e.target.value)}
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          {t("bulk.priceUzs")}
+                        </span>
+                        <input
+                          className={bulkInputClass}
+                          inputMode="numeric"
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          {t("layoutUrl")}
+                        </span>
+                        <input
+                          className={bulkInputClass}
+                          value={editLayoutUrl}
+                          onChange={(e) => setEditLayoutUrl(e.target.value)}
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          {t("uploadLayout")}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="text-xs font-medium text-slate-600"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void uploadLayoutFile(f).catch(() => {});
+                          }}
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          {t("modelUrl")}
+                        </span>
+                        <input
+                          className={bulkInputClass}
+                          value={editModelUrl}
+                          onChange={(e) => setEditModelUrl(e.target.value)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={unitSaving}
+                        onClick={() => void saveUnitEdit()}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1E3A8A] py-3 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
+                      >
+                        {unitSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : null}
+                        {unitSaving ? t("savingUnit") : t("saveUnit")}
+                      </button>
+                    </div>
+                  )}
+
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
                       {t("status")}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
 import { 
   Users, 
@@ -10,8 +10,6 @@ import {
   ExternalLink, 
   Copy, 
   Search,
-  Filter,
-  MoreHorizontal,
   Mail,
   X
 } from "lucide-react";
@@ -59,6 +57,7 @@ type Lead = {
   name: string;
   phone: string;
   project: string;
+  projectId: number | null;
   createdAt: string;
   status: LeadStatus;
   feedbackUrl?: string;
@@ -106,14 +105,30 @@ export default function LeadsPage() {
 
   const [selectedLink, setSelectedLink] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useState<number | "all">("all");
+  const [projectOptions, setProjectOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
 
-  const loadLeads = async () => {
+  const loadLeads = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiFetch<ApiLead[]>("/leads");
-      const currentDeveloper = await apiFetch<{ id: number; name: string }>("/developers");
+      const currentDeveloper = await apiFetch<{ id: number; name: string }>(
+        "/developers",
+      );
       window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
+      const allProjects = await apiFetch<
+        Array<{ id: number; name: string; developerId: number }>
+      >("/projects");
+      const own = allProjects.filter((p) => p.developerId === currentDeveloper.id);
+      setProjectOptions(own.map((p) => ({ id: p.id, name: p.name })));
+
+      const leadsPath =
+        projectFilter === "all"
+          ? "/leads"
+          : `/leads?projectId=${projectFilter}`;
+      const data = await apiFetch<ApiLead[]>(leadsPath);
       const feedbackData = await apiFetch<{
         avgRating: number | null;
         totalFeedbacks: number;
@@ -131,6 +146,7 @@ export default function LeadsPage() {
             name: lead.name,
             phone: lead.phone,
             project: lead.project?.name ?? "—",
+            projectId: lead.project?.id ?? null,
             createdAt: new Date(lead.createdAt).toISOString().slice(0, 10),
             status: (LEAD_COLUMNS.includes(lead.status as LeadStatus)
               ? lead.status
@@ -146,11 +162,11 @@ export default function LeadsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectFilter]);
 
   useEffect(() => {
     void loadLeads();
-  }, []);
+  }, [loadLeads]);
 
   const leadsCount = useMemo(
     () => ({
@@ -233,8 +249,8 @@ export default function LeadsPage() {
           <p className="text-slate-500 font-medium text-sm">{t("subtitle")}</p>
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full md:w-auto md:max-w-3xl">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input 
               type="text" 
@@ -244,9 +260,22 @@ export default function LeadsPage() {
               className="h-12 pl-11 pr-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all w-full"
             />
           </div>
-          <button className="h-12 w-12 flex items-center justify-center bg-white border border-slate-200 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
-            <Filter className="h-5 w-5" />
-          </button>
+          <select
+            value={projectFilter === "all" ? "" : String(projectFilter)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setProjectFilter(v === "" ? "all" : Number(v));
+            }}
+            className="h-12 shrink-0 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-black uppercase tracking-widest text-slate-800 outline-none focus:ring-4 focus:ring-blue-600/10 md:min-w-[200px]"
+            aria-label={t("projectFilter")}
+          >
+            <option value="">{t("projectFilterAll")}</option>
+            {projectOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -396,8 +425,7 @@ export default function LeadsPage() {
                 <th className="px-6 py-5">{t("table.client")}</th>
                 <th className="px-6 py-5">{t("table.project")}</th>
                 <th className="px-6 py-5">{t("table.status")}</th>
-                <th className="px-6 py-5">{t("table.action")}</th>
-                <th className="px-6 py-5 text-right">{t("table.feedback")}</th>
+                <th className="px-4 py-5 text-right w-[140px]">{t("table.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -421,41 +449,43 @@ export default function LeadsPage() {
                       {t(`status.${lead.status}`)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => setContacted(lead.id)}
-                      disabled={lead.status === "CONTACTED"}
-                      className="h-10 rounded-xl bg-slate-900 px-4 text-xs font-black text-white transition-all hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 uppercase tracking-widest"
-                    >
-                      {t("btnContact")}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex flex-col items-end gap-1.5">
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
+                        title={t("btnContact")}
+                        onClick={() => setContacted(lead.id)}
+                        disabled={lead.status === "CONTACTED"}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        <PhoneCall className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        title={t("btnFeedback")}
                         onClick={() => createFeedbackLink(lead.id)}
                         disabled={lead.status !== "CONTACTED"}
-                        className="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-xs font-black text-blue-700 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <Star className="h-3 w-3" /> {t("btnFeedback")}
+                        <Star className="h-4 w-4" />
                       </button>
-                      {lead.feedbackUrl && (
+                      {lead.feedbackUrl ? (
                         <button
+                          type="button"
+                          title={t("showLink")}
                           onClick={() => setSelectedLink(lead.feedbackUrl!)}
-                          className="text-[10px] font-black text-blue-600 underline uppercase tracking-tighter"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-white text-blue-600 hover:bg-blue-50"
                         >
-                          {t("showLink")}
+                          <Copy className="h-4 w-4" />
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>
               ))}
               {filteredLeads.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-medium italic">
+                  <td colSpan={4} className="px-6 py-20 text-center text-slate-400 font-medium italic">
                     {t("noResults")}
                   </td>
                 </tr>

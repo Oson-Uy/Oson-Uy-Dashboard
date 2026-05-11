@@ -29,6 +29,7 @@ import {
   Navigation,
   ListChecks,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
 import { useTranslations, useLocale } from "next-intl";
@@ -375,6 +376,14 @@ export default function ProjectsPage() {
                     aria-label={t("chessboard")}
                   >
                     <LayoutGrid className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href={`/dashboard/projects/${project.id}/customers`}
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
+                    title={t("customers")}
+                    aria-label={t("customers")}
+                  >
+                    <Users className="h-4 w-4" />
                   </Link>
                   <Link
                     href={`/dashboard/progress?projectId=${project.id}`}
