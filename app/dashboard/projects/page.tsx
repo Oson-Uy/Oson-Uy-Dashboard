@@ -30,9 +30,11 @@ import {
   ListChecks,
   LayoutGrid,
   Users,
+  Lock,
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
 import { useTranslations, useLocale } from "next-intl";
+import { hasUltimateWorkspaceAccess } from "@/lib/subscription-access";
 
 type Project = {
   id: number;
@@ -369,22 +371,58 @@ export default function ProjectsPage() {
                   <h3 className="text-2xl font-black text-white tracking-tight">{project.name}</h3>
                 </div>
                 <div className="flex gap-2">
-                  <Link
-                    href={`/dashboard/projects/${project.id}/chessboard`}
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
-                    title={t("chessboard")}
-                    aria-label={t("chessboard")}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href={`/dashboard/projects/${project.id}/customers`}
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
-                    title={t("customers")}
-                    aria-label={t("customers")}
-                  >
-                    <Users className="h-4 w-4" />
-                  </Link>
+                  {(() => {
+                    const ultraOk = hasUltimateWorkspaceAccess({
+                      plan: project.plan,
+                      status: project.subscriptionStatus,
+                    });
+                    const lockCls =
+                      "h-10 w-10 flex items-center justify-center rounded-xl bg-amber-500/90 backdrop-blur-md text-white ring-2 ring-amber-200/80 hover:bg-amber-500 transition-all";
+                    const openCls =
+                      "h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all";
+                    return (
+                      <>
+                        {ultraOk ? (
+                          <Link
+                            href={`/dashboard/projects/${project.id}/chessboard`}
+                            className={openCls}
+                            title={t("chessboard")}
+                            aria-label={t("chessboard")}
+                          >
+                            <LayoutGrid className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/dashboard/subscriptions"
+                            className={lockCls}
+                            title={t("ultraUpgradeHint")}
+                            aria-label={t("ultraOnlyChessboard")}
+                          >
+                            <Lock className="h-4 w-4" />
+                          </Link>
+                        )}
+                        {ultraOk ? (
+                          <Link
+                            href={`/dashboard/projects/${project.id}/customers`}
+                            className={openCls}
+                            title={t("customers")}
+                            aria-label={t("customers")}
+                          >
+                            <Users className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/dashboard/subscriptions"
+                            className={lockCls}
+                            title={t("ultraUpgradeHint")}
+                            aria-label={t("ultraOnlyCustomers")}
+                          >
+                            <Lock className="h-4 w-4" />
+                          </Link>
+                        )}
+                      </>
+                    );
+                  })()}
                   <Link
                     href={`/dashboard/progress?projectId=${project.id}`}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"

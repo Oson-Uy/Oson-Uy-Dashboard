@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
 import { formatPhoneInput, formatPhoneNumber, phoneDigitsOnly } from "@/lib/format";
+import { hasUltimateWorkspaceAccess } from "@/lib/subscription-access";
 
 type ApartmentOpt = {
   id: number;
@@ -73,6 +74,7 @@ export default function ProjectCustomersPage() {
   const [rows, setRows] = useState<CustomerRow[]>([]);
   const [apartments, setApartments] = useState<ApartmentOpt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [planLocked, setPlanLocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -152,15 +154,25 @@ export default function ProjectCustomersPage() {
     if (!projectId || Number.isNaN(projectId)) return;
     setLoading(true);
     setError(null);
+    setPlanLocked(false);
     try {
-      const [proj, listRes, aptRes] = await Promise.all([
-        apiFetch<{ name: string }>(`/projects/${projectId}`),
+      const proj = await apiFetch<{
+        name: string;
+        subscription?: { plan: string; status: string };
+      }>(`/projects/${projectId}`);
+      setProjectName(proj.name);
+      if (!hasUltimateWorkspaceAccess(proj.subscription)) {
+        setPlanLocked(true);
+        setRows([]);
+        setApartments([]);
+        return;
+      }
+      const [listRes, aptRes] = await Promise.all([
         apiFetch<ListResponse>(`/projects/${projectId}/customers?limit=200`),
         apiFetch<{ items: ApartmentOpt[] }>(
           `/projects/${projectId}/apartments?limit=500`,
         ),
       ]);
-      setProjectName(proj.name);
       setRows(listRes.items ?? []);
       setApartments(aptRes.items ?? []);
     } catch {
@@ -320,6 +332,31 @@ export default function ProjectCustomersPage() {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-[#1E3A8A]" />
+      </div>
+    );
+  }
+
+  if (planLocked) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-6 px-4 py-20 text-center animate-in fade-in duration-500">
+        <h1 className="text-2xl font-black text-[#1E3A8A] md:text-3xl">{t("ultraRequiredTitle")}</h1>
+        <p className="text-sm font-medium leading-relaxed text-slate-600 md:text-base">
+          {t("ultraRequiredBody")}
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/dashboard/subscriptions"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#1E3A8A] px-8 text-sm font-black uppercase tracking-widest text-white shadow-lg hover:bg-[#172554]"
+          >
+            {t("ultraRequiredCta")}
+          </Link>
+          <Link
+            href="/dashboard/projects"
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-800 hover:bg-slate-50"
+          >
+            {t("back")}
+          </Link>
+        </div>
       </div>
     );
   }

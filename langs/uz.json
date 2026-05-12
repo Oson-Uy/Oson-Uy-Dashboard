@@ -129,6 +129,9 @@
     "chessboard": {
       "title": "Shaxmatka",
       "subtitle": "qavatlar bo'yicha kvartiralar",
+      "ultraRequiredTitle": "Ultra tarif kerak",
+      "ultraRequiredBody": "Shaxmatka faqat ushbu loyiha uchun Ultra (ULTIMATE) faol obunada ochiladi.",
+      "ultraRequiredCta": "Tariflarga",
       "loadError": "Kvartiralarni yuklab bo'lmadi",
       "badProject": "Noto'g'ri loyiha",
       "back": "Loyihalarga",
@@ -230,6 +233,9 @@
     "customers": {
       "title": "Xaridorlar",
       "subtitle": "kirish kodi va kvartira bog'lash",
+      "ultraRequiredTitle": "Ultra tarif kerak",
+      "ultraRequiredBody": "Xaridorlar CRM faqat ushbu loyiha uchun Ultra (ULTIMATE) faol obunada ochiladi.",
+      "ultraRequiredCta": "Tariflarga",
       "loadError": "Ma'lumot yuklanmadi",
       "badProject": "Noto'g'ri loyiha",
       "back": "Loyihalarga",
@@ -286,48 +292,52 @@
       "finish": "Ishni boshlash",
       "steps": [
         {
-          "title": "Bitta kabinet — loyiha, shaxmatka va xaridorlar",
-          "description": "Chap menyuda: umumiy ko'rinish, arizalar, loyihalar, qurilish jarayoni, tariflar va profil. Loyiha kartochkasidan kvartiralar shaxmatkasi va CRM ochiladi.",
+          "title": "Quruvchi kabineti menyusi",
+          "description": "Chapda: umumiy ko'rinish, sayt arizalari, loyihalar, qurilish jarayoni, tariflar va profil. Telefonda xuddi shu menyu tugma orqali ochiladi.",
           "bullets": [
-            "«Loyihalar»da TY kartochkasini yarating va tahrirlang — xaridorlar OsonUy katalogida shuni ko'radi.",
-            "Shaxmatka va xaridorlar ma'lum loyiha bilan bog'langan: qoldiqlar va kirish kodlari tartibli.",
-            "Hisobdan chiqish — pastki panel yoki telefon menyusi orqali."
+            "«Loyihalar» — TY kartochkasi va tahrirlash formasi: xaridor Oson Uy katalogida shuni ko'radi.",
+            "«Arizalar» — kiruvchi lidlar uchun kanban va jadval.",
+            "«Jarayon» — buyer kabinetidagi qurilish bosqichlari."
           ]
         },
         {
-          "title": "Shaxmatka: ommaviy qo'shish va filtrlar",
-          "description": "Shaxmatkada bloklar va qavatlar bo'yicha ommaviy kvartira qo'shish, blok, xonalar, narx va qavat bo'yicha filtrlash mumkin. «Qavat × blok» jadvalida holatlar: bo'sh / bron / sotilgan.",
+          "title": "Loyihalar va katalog",
+          "description": "Loyiha yarating yoki tahrirlang: suratlar, video, xarita, xususiyatlar, m² narxlari va rejalar bilan qavatlar — hammasi ochiq TY sahifasiga chiqadi.",
           "bullets": [
-            "«Ommaviy qo'shish» bilan qavat oralig'i va qavatdagi kv.soni — raqamlar avtomatik chiqadi.",
-            "Yon panelda 2D reja, 3D havola va kerak bo'lsa maydonlarni tahrirlash, reja rasmini yuklash.",
-            "Holatlarni tez o'zgartirish mumkin — ular kvartira kartasi bilan mos."
+            "Sayt bilan bir xil backend — ma'lumotlar sinxron.",
+            "Dashboard kartochkasidan tezkor harakatlar (jarayon; shaxmatka va xaridorlar faqat Ultra tarifida — keyingi qadamda)."
           ]
         },
         {
-          "title": "CRM va kirish kodi",
-          "description": "Loyiha bo'yicha «Xaridorlar»da mijoz yaratasiz, kvartira bog'laysiz va noyob kirish kodini olasiz. Kod va telefon bilan mijoz saytdagi shaxsiy kabinetga kiradi.",
+          "title": "Arizalar va sharh",
+          "description": "Sayt arizalari «Arizalar»da: loyiha bo'yicha filtr, qidiruv, holatlar bo'yicha kanban.",
           "bullets": [
-            "Kod jadvalda ko'rinadi va bir tugma bilan nusxa olinadi; zarurat bo'lsa yangi kod chiqariladi.",
-            "Shartnoma summasi va «shu oy to'lovi» buyer kabinetida chiqishi uchun bu yerda kiriting.",
-            "Agar CRM'da mijoz bo'lmasa, «kod chiqmayapti» degan ta'shod bo'ladi — mijozni shu sahifada yarating."
+            "«Bog'landi»dan keyin sharh havolasini yaratish va mijozga yuborish mumkin.",
+            "Qayta aloqa uchun ism va telefondan foydalaning."
           ]
         },
         {
-          "title": "Arizalar bo'yicha filtr va sharh",
-          "description": "Saytdan kelgan arizalar «Arizalar»da. Loyiha bo'yicha filtrlash, ustunlarda holat (drag-and-drop) va jadvalda ixcham tugmalar.",
+          "title": "Qurilish jarayoni",
+          "description": "«Jarayon»: bosqichlar ro'yxati, suratlar, bajarilgan belgisi. Foiz va ro'yxat xaridorning saytdagi kabinetida ko'rinadi.",
           "bullets": [
-            "Qo'ng'iroq qiling va «Bog'landi»ni bosing — keyin sharh havolasi ochiladi.",
-            "Sharh havolasini modal orqali yoki qatoridagi tugma bilan nusxalang.",
-            "Ko'p ariza bo'lsa ism va telefon bo'yicha qidiring."
+            "URL parametri orqali loyihaga bog'lash mumkin.",
+            "To'lovlar va «shu oy to'lovi» Ultra dagi xaridorlar CRM orqali beriladi."
           ]
         },
         {
-          "title": "Qurilish bosqichlari xaridor uchun",
-          "description": "«Jarayon»da qurilish nuqtalarini yozing va bajarilganlarini belgilang — foiz va ro'yxat buyer kabinetida ko'rinadi. Tariflar va kompaniya — boshqa menyuda.",
+          "title": "Tariflar va Ultra",
+          "description": "«Tariflar»da loyiha uchun reja tanlaysiz va to'lov arizasini rasmiylashtirasiz: hisob va rekvizitlar chiqadi; menejer tasdiqlagach obuna faollashadi.",
           "bullets": [
-            "Nuqtalarga tushunarli nom va xohlasangiz surat qo'shing.",
-            "Xaridor to'lovlar, qoldiq va (CRM'da ko'rsatilsa) oyiga to'lovni ko'radi.",
-            "Faol tarif katalogda ko'rinishni kuchaytiradi — «Tariflar» bo'limida ulang."
+            "Kvartiralar shaxmatkasi va xaridorlar CRM (saytdagi kabinet uchun kodlar) faqat Ultra (ULTIMATE) rejada, TRIAL yoki ACTIVE holatda.",
+            "Promokodlar — shu sahifada; berilgan bo'lsa muddatni uzaytiradi yoki bepul davrni yoqadi."
+          ]
+        },
+        {
+          "title": "Hisob va summalar",
+          "description": "Hozirgi sozlamalarda tariflar 0 UZS ko'rinishi mumkin: bu to'lov arizasi va faollashtirishni interfeysda qat'iy summasiz rasmiylashtirish. Hisobda baribir rekvizitlar va izoh bo'ladi.",
+          "bullets": [
+            "Hisoblar tarixi tizimda saqlanadi; tarifni tekshirish uchun loyihalar ro'yxatidagi rejani ko'ring.",
+            "Ultra kirish bo'yicha savollar — «Tariflar» yoki qo'llab-quvvatlash orqali."
           ]
         }
       ]
@@ -387,7 +397,7 @@
             "Har doim tavsiyalar tepasida",
             "Shaxsiy menejer",
             "Hisobotlarni PDF/Excel-da yuklab olish",
-            "CRM bilan to'g'ridan-to'g'ri integratsiya"
+            "Kvartiralar shaxmatkasi va xaridorlar CRM — saytdagi shaxsiy kabinet uchun kodlar"
           ]
         }
       }
@@ -416,6 +426,9 @@
       "progress": "Qurilish jarayoni",
       "chessboard": "Kvartiralar shaxmatkasi",
       "customers": "CRM xaridorlar",
+      "ultraOnlyChessboard": "Shaxmatka — faqat Ultra",
+      "ultraOnlyCustomers": "Xaridorlar — faqat Ultra",
+      "ultraUpgradeHint": "Shaxmatka va xaridorlar CRM faqat Ultra (ULTIMATE) tarifida. Tariflarga o'tish uchun bosing.",
       "details": "Batafsil",
       "editProject": "Loyihani tahrirlash",
       "addProject": "Yangi loyiha qo'shish",
